@@ -23,3 +23,39 @@ Contains the energy in storage at the Sudeste/Centro-Oeste subsystem each day.
 - **Stored_energy**: energy in storage at the given day, in GWh. 
 
 (**Note:** to compute the energy produced on day *x* that was stored that day, we would need to compute the difference between the values of *Stored_enegy* at days *x* and *x-1*.)  
+
+### Influent_Flow.csv
+Average(?) rate of flow into the reservoir per day
+
+#### Variables
+- **Date**: Day.
+- **Effluent_Flow**: Average(?) rate of flow into the reservoir per day in *m^3/s*.
+
+### Poured_Flow.csv
+Average(?) rate of flow released by reservoir through surface spillways and/or bottom spillways.
+
+#### Variables
+- **Date**: Day.
+- **Effluent_Flow**: Average(?) rate of flow released by reservoir per day in *m^3/s*.
+
+### Turbine_Flow.csv
+Average(?) rate of flow that passes through the turbines of a hydroelectric plant.
+
+#### Variables
+- **Date**: Day.
+- **Effluent_Flow**: Average(?) rate of flow that passes through the turbines per day in *m^3/s*.
+
+### Effluent_Flow.csv
+Average(?) rate of flow leaving hydroelectric plant.
+
+#### Variables
+- **Date**: Day.
+- **Effluent_Flow**: Average(?) rate of flow leaving hydroelectric plant per day in $m^3/2$.
+
+### Percent_Vol_Used.csv
+Percentage of useful(?) volume. (Translation needed; what does "Volume Útil" mean?)
+
+#### Variables
+- **Date**: Day.
+- **Percent_Vol_Used**: meaning tbd.
+
