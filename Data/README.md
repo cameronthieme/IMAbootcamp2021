@@ -143,3 +143,20 @@ Time scale: monthly
 Units and meaning are unclear for Capacity
 - **Date**: Date and time of measurement (Month and Year)
 - **Capacity**: Substation Transformation Capacity (MVA)
+
+
+### Affluent_Natural_Energy_SE:MidW.csv
+Space: Southeast/MidWest
+Time:Daily
+Units: MWmed
+
+### Affluent_Natural_Energy_TieteBasin.csv
+Space: Tiete Basin
+Time: Daily
+Units: MWmed
+
+### Maximum_Demand.csv
+Space: Southeast/MidWest
+Time: Daily
+Units: MW
+
