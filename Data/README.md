@@ -65,6 +65,7 @@ Percentage of useful(?) volume. (Translation needed; what does "Volume Útil" me
 
 ### group_waterlevel_data.csv
 Space Scale: Barra Bonita
+
 Time Scale: Daily 
 
 Daily water level measurements at Barra Bonita
@@ -74,6 +75,7 @@ Daily water level measurements at Barra Bonita
 
 ### group_energy_exchange_data.csv
 Space Scale: Southeast/central
+
 Time Scale: Daily
 
 Daily energy exchange measurments at boundry lines of the southeast/central energy region.
