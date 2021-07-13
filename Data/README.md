@@ -75,8 +75,11 @@ Small description
 
 ### nrg_generated.csv
 Amount of energy generated (GWh), measured daily at Barra Bonita, 1/1/16 to 12/31/20
+
 Space Scale: Barra Bonita
+
 Time scale: Daily
+
 - **Date**: Date and time of measurement
 - **Energy Generated (GWh)**: Amount of energy generated (GWh)
 
