@@ -22,4 +22,4 @@ Contains the energy in storage at the Sudeste/Centro-Oeste subsystem each day.
 - **Date**: Day.
 - **Stored_energy**: energy in storage at the given day, in GWh. 
 
-(**Note:** to compute the energy produced on day *x* that was stored that day, we would need to compute the difference between the values of *Stored_enegy* at days *x* and *$x-1*.)  
+(**Note:** to compute the energy produced on day *x* that was stored that day, we would need to compute the difference between the values of *Stored_enegy* at days *x* and *x-1*.)  
