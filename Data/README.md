@@ -6,7 +6,7 @@ All data is at the closest level to Barra Bonita, Tiete, Sao Paulo in the Sudest
 
 ## The csv files
 
-### Marginal_Cost_Weekly_Mean
+### Marginal_Cost_Weekly_Mean.csv
 Contains the weekly mean of the marginal cost of operation in the Sudeste/Centro-Oeste subsystem.
 The marginal cost refers to the cost of producing an extra KWh of energy. 
 
