@@ -66,7 +66,8 @@ Percentage of useful(?) volume. (Translation needed; what does "Volume Útil" me
 ### group_energy_exchange_data.csv
 - **date**: YYYY-MM-DD
 - **physical_energy_exchange**: physical energy exchange measured at boundery lines of southeast district (GWh)
-- **liquid_energy_exchange**: liquid energy exchange measured at boundery lines of southeast district (GWh)
+- **liquid_energy_exchange**: liquid energy exchange measured at boundery lines of southeast district (GWh) (Note: liquid may translate to something like "net"... in which case liquid energy exchange is net energy exchange)
+
 
 ### New_Dataset.csv
 Small description
