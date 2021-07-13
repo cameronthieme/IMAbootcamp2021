@@ -177,3 +177,16 @@ Time: Monthly
 
 Units: km
 
+### energy_charge.csv
+
+Space: Southeast/central west
+Time: Daily, 1/1/2016-12/31/2020
+
+day to day energy charge (units: GWh)
+
+### hourly_load.csv
+
+space: Southeast/central west
+Time: Daily and hourly, 1/1/2016-12/31/2020
+
+day-to-day hourly_load (units: MWh/h)
