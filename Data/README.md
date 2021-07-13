@@ -11,6 +11,8 @@ The installed generation capacity for Barra Bonita: 140 MW.
 ## The csv files
 
 -----------------------#Barra Bonita-----------------------------------
+### Influent_Flow.csv
+Average(?) rate of flow into the reservoir per day
 
 Space Scale: Barra Bonita
 
@@ -18,7 +20,7 @@ Time scale: daily
 
 #### Variables
 - **Date**: Day.
-- **Effluent_Flow**: Average(?) rate of flow into the reservoir per day in *m^3/s*.
+- **Influent_Flow**: Average(?) rate of flow into the reservoir per day in *m^3/s*.
 
 ### Poured_Flow.csv
 Average(?) rate of flow released by reservoir through surface spillways and/or bottom spillways.
@@ -72,6 +74,9 @@ Space Scale: Barra Bonita
 
 Time Scale: Daily 
 
+- **date**: YYYY-MM-DD
+- **waterlevel**: meters (probably height from sealevel)
+
 
 ### nrg_generated.csv
 Amount of energy generated (GWh), measured daily at Barra Bonita, 1/1/16 to 12/31/20
@@ -113,16 +118,6 @@ Time scale: daily
 
 (**Note:** to compute the energy produced on day *x* that was stored that day, we would need to compute the difference between the values of *Stored_enegy* at days *x* and *x-1*.)  
 
-### Influent_Flow.csv
-Average(?) rate of flow into the reservoir per day
-
-
-
-
-
-
-- **date**: YYYY-MM-DD
-- **waterlevel**: meters (probably height from sealevel)
 
 ### group_energy_exchange_data.csv
 
@@ -164,14 +159,6 @@ Time:Daily
 
 Units: MWmed
 
-### Affluent_Natural_Energy_TieteBasin.csv
-
-Space: Tiete Basin
-
-Time: Daily
-
-Units: MWmed
-
 ### Maximum_Demand.csv
 
 Space: Southeast/MidWest
@@ -179,14 +166,6 @@ Space: Southeast/MidWest
 Time: Daily
 
 Units: MW
-
-### TransmissionLines_Length.csv
-
-Space: Brazil
-
-Time: Monthly
-
-Units: km
 
 ### energy_charge.csv
 
@@ -201,3 +180,25 @@ space: Southeast/central west
 Time: Daily and hourly, 1/1/2016-12/31/2020
 
 day-to-day hourly_load (units: MWh/h)
+
+------------------------------#Misc------------------------
+
+### Affluent_Natural_Energy_TieteBasin.csv
+
+Space: Tiete Basin
+
+Time: Daily
+
+Units: MWmed
+
+
+
+### TransmissionLines_Length.csv
+
+Space: Brazil
+
+Time: Monthly
+
+Units: km
+
+
