@@ -10,6 +10,15 @@ The installed generation capacity for Barra Bonita: 140 MW.
 
 ## The csv files
 
+### monthly_df.csv
+All of the variables that we had on a monthly scale
+- **Date**: Month and Year
+- **Capacity**: Substation Transformation Capacity (MVA).  Data from Southwest/Central Region.  Units and meaning are unclear at this time
+- **Length**: Total length of transmission lines in Brazil.  Units: km
+- **marginal_cost_monthly_mean**: Contains the monthly mean of the marginal cost of operation in the Sudeste/Centro-Oeste subsystem.
+The marginal cost refers to the cost of producing an extra KWh of energy. Date averaged from weekly means, where binning is by the month that the last day of the week falls into.  Last entry of weekly info dropped (falls into 2021)
+
+
 -----------------------#Barra Bonita-----------------------------------
 ### Influent_Flow.csv
 Average(?) rate of flow into the reservoir per day
