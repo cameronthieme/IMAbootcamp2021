@@ -10,34 +10,7 @@ The installed generation capacity for Barra Bonita: 140 MW.
 
 ## The csv files
 
-### Marginal_Cost_Weekly_Mean.csv
-Contains the weekly mean of the marginal cost of operation in the Sudeste/Centro-Oeste subsystem.
-The marginal cost refers to the cost of producing an extra KWh of energy. 
-
-Space Scale: Southwest/CentralWest Region
-
-Time scale: weekly
-
-#### Variables
-- **Start_of_week**: Date of the start of the week. 
-- **Date**: Last day of the corresponding week. 
-- **Marginal_cost_mean_week**: Weekly mean marginal cost, in Brazilian Reals per MWh. 
-
-### Stored_Energy.csv
-Contains the energy in storage at the Sudeste/Centro-Oeste subsystem each day.
-
-Space Scale: Southwest/CentralWest Region
-
-Time scale: daily
-
-#### Variables
-- **Date**: Day.
-- **Stored_energy**: energy in storage at the given day, in GWh. 
-
-(**Note:** to compute the energy produced on day *x* that was stored that day, we would need to compute the difference between the values of *Stored_enegy* at days *x* and *x-1*.)  
-
-### Influent_Flow.csv
-Average(?) rate of flow into the reservoir per day
+-----------------------#Barra Bonita-----------------------------------
 
 Space Scale: Barra Bonita
 
@@ -100,6 +73,53 @@ Space Scale: Barra Bonita
 Time Scale: Daily 
 
 
+### nrg_generated.csv
+Amount of energy generated (GWh), measured daily at Barra Bonita, 1/1/16 to 12/31/20
+
+Space Scale: Barra Bonita
+
+Time scale: Daily
+
+- **Date**: Date and time of measurement
+- **Energy Generated (GWh)**: Amount of energy generated (GWh)
+
+
+
+-----------------------#Souteast/Central-West--------------------------
+
+### Marginal_Cost_Weekly_Mean.csv
+Contains the weekly mean of the marginal cost of operation in the Sudeste/Centro-Oeste subsystem.
+The marginal cost refers to the cost of producing an extra KWh of energy. 
+
+Space Scale: Southwest/CentralWest Region
+
+Time scale: weekly
+
+#### Variables
+- **Start_of_week**: Date of the start of the week. 
+- **Date**: Last day of the corresponding week. 
+- **Marginal_cost_mean_week**: Weekly mean marginal cost, in Brazilian Reals per MWh. 
+
+### Stored_Energy.csv
+Contains the energy in storage at the Sudeste/Centro-Oeste subsystem each day.
+
+Space Scale: Southwest/CentralWest Region
+
+Time scale: daily
+
+#### Variables
+- **Date**: Day.
+- **Stored_energy**: energy in storage at the given day, in GWh. 
+
+(**Note:** to compute the energy produced on day *x* that was stored that day, we would need to compute the difference between the values of *Stored_enegy* at days *x* and *x-1*.)  
+
+### Influent_Flow.csv
+Average(?) rate of flow into the reservoir per day
+
+
+
+
+
 
 - **date**: YYYY-MM-DD
 - **waterlevel**: meters (probably height from sealevel)
@@ -123,15 +143,6 @@ Small description
 - **var1**
 
 
-### nrg_generated.csv
-Amount of energy generated (GWh), measured daily at Barra Bonita, 1/1/16 to 12/31/20
-
-Space Scale: Barra Bonita
-
-Time scale: Daily
-
-- **Date**: Date and time of measurement
-- **Energy Generated (GWh)**: Amount of energy generated (GWh)
 
 ### nrg_capacity.csv
 Subsytem energy capacity for Southwest/Central Region, 1/1/16 to 12/31/20
