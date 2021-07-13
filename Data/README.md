@@ -19,6 +19,49 @@ All of the variables that we had on a monthly scale
 The marginal cost refers to the cost of producing an extra KWh of energy. Date averaged from weekly means, where binning is by the month that the last day of the week falls into.  Last entry of weekly info dropped (falls into 2021)
 
 
+-----------------------#daily data-------------------------------------
+
+### aggragate_daily_data.csv
+Combines all daily data we have collected into one csv organzied by date. Note that after reading the csv, the date information needs to be set as dates using as.Date(). Furthermore, the space variable is implicit to the column name since each date as data for Barra Bonita and other locations.
+
+Space Scale: ill-defined 
+
+Time Scale: daily
+
+### Variables 
+
+-***date***: YYYY-MM-DD
+
+-***affluent_natural_energy_southeast***: affluent natural energy for Southeast/Central-west region in MWmed
+
+-***effluent_flow***: effluent flow in m^3/s
+
+-***influent_flow***: influent flow in m^3
+
+-***volume_used***: percent volume used
+
+-***poured_flow***: poured flow in m^3/s
+
+-***turbine_flow***: turbine flow in m^3/s
+
+-***water_level***: water level in meters
+
+-***energy_generated***: energy generated in GWh
+
+-***energy_stored***: energy stored in GWH
+
+-***physical_energy_exchange***: physical energy exchanged at boundry lines of Southeast/Central-west region in GWh
+
+-***liquid_energy_exchange***: liquid energy exchanged at boundry lines of Southeast/Central-west region in GWh
+
+-***affluent_natural_energy_tiete_basin***: affluent natural energy for the tiete basin region in MWmed
+
+-***maximum_demand***: maximum demand in Southeast/Centra-west region in MW
+
+-***energy_charge***: energy charge in GWh
+
+
+
 -----------------------#Barra Bonita-----------------------------------
 ### Influent_Flow.csv
 Average(?) rate of flow into the reservoir per day
@@ -141,10 +184,6 @@ Time Scale: Daily
 - **date**: YYYY-MM-DD
 - **physical_energy_exchange**: physical energy exchange measured at boundery lines of southeast district (GWh)
 - **liquid_energy_exchange**: liquid energy exchange measured at boundery lines of southeast district (GWh)
-
-### New_Dataset.csv
-Small description
-- **var1**
 
 
 
