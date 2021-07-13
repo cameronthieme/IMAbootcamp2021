@@ -60,10 +60,12 @@ Percentage of useful(?) volume. (Translation needed; what does "Volume Útil" me
 - **Percent_Vol_Used**: meaning tbd.
 
 ### group_waterlevel_data.csv
+Daily waterlevel measurements at Barra Bonita
 - **date**: YYYY-MM-DD
 - **waterlevel**: meters (probably height from sealevel)
 
 ### group_energy_exchange_data.csv
+Daily energy exchange data for the southeast region. 
 - **date**: YYYY-MM-DD
 - **physical_energy_exchange**: physical energy exchange measured at boundery lines of southeast district (GWh)
 - **liquid_energy_exchange**: liquid energy exchange measured at boundery lines of southeast district (GWh)
