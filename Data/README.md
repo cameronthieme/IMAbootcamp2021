@@ -68,3 +68,7 @@ Percentage of useful(?) volume. (Translation needed; what does "Volume Útil" me
 - **physical_energy_exchange**: physical energy exchange measured at boundery lines of southeast district (GWh)
 - **liquid_energy_exchange**: liquid energy exchange measured at boundery lines of southeast district (GWh)
 
+### New_Dataset.csv
+Small description
+- **var1**
+- 
