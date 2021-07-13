@@ -14,3 +14,12 @@ The marginal cost refers to the cost of producing an extra KWh of energy.
 - **Start_of_week**: Date of the start of the week. 
 - **Date**: Last day of the corresponding week. 
 - **Marginal_cost_mean_week**: Weekly mean marginal cost, in Brazilian Reals per MWh. 
+
+### Stored_Energy.csv
+Contains the energy in storage at the Sudeste/Centro-Oeste subsystem each day.
+
+#### Variables
+- **Date**: Day.
+- **Stored_energy**: energy in storage at the given day, in GWh. 
+
+(**Note:** to compute the energy produced on day $x$ that was stored that day, we would need to compute the difference between the values of *Stored_enegy* at days $x$ and $x-1$.)  
