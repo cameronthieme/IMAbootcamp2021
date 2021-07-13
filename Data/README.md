@@ -1,7 +1,7 @@
 # Data
 
 Data downloaded from the ONS (Operador Nacional do Sistema Elétrico) [webpage](http://www.ons.org.br/paginas/resultados-da-operacao/historico-da-operacao).
-All data is daily (except where otherwise noted), and goes from January 1, 2015 to December 31, 2020. 
+All data is daily (except where otherwise noted), and goes from January 1, 2016 to December 31, 2020. 
 All data is at the closest level to Barra Bonita, Tiete, Sao Paulo in the Sudeste/Centro-Oeste subsystem. 
 
 ## Constants
@@ -14,6 +14,10 @@ The installed generation capacity for Barra Bonita: 140 MW.
 Contains the weekly mean of the marginal cost of operation in the Sudeste/Centro-Oeste subsystem.
 The marginal cost refers to the cost of producing an extra KWh of energy. 
 
+Space Scale: Southwest/CentralWest Region
+
+Time scale: weekly
+
 #### Variables
 - **Start_of_week**: Date of the start of the week. 
 - **Date**: Last day of the corresponding week. 
@@ -21,6 +25,10 @@ The marginal cost refers to the cost of producing an extra KWh of energy.
 
 ### Stored_Energy.csv
 Contains the energy in storage at the Sudeste/Centro-Oeste subsystem each day.
+
+Space Scale: Southwest/CentralWest Region
+
+Time scale: daily
 
 #### Variables
 - **Date**: Day.
@@ -31,12 +39,20 @@ Contains the energy in storage at the Sudeste/Centro-Oeste subsystem each day.
 ### Influent_Flow.csv
 Average(?) rate of flow into the reservoir per day
 
+Space Scale: Barra Bonita
+
+Time scale: daily
+
 #### Variables
 - **Date**: Day.
 - **Effluent_Flow**: Average(?) rate of flow into the reservoir per day in *m^3/s*.
 
 ### Poured_Flow.csv
 Average(?) rate of flow released by reservoir through surface spillways and/or bottom spillways.
+
+Space Scale: Barra Bonita
+
+Time scale: daily
 
 #### Variables
 - **Date**: Day.
@@ -45,12 +61,20 @@ Average(?) rate of flow released by reservoir through surface spillways and/or b
 ### Turbine_Flow.csv
 Average(?) rate of flow that passes through the turbines of a hydroelectric plant.
 
+Space Scale: Barra Bonita
+
+Time scale: daily
+
 #### Variables
 - **Date**: Day.
 - **Effluent_Flow**: Average(?) rate of flow that passes through the turbines per day in *m^3/s*.
 
 ### Effluent_Flow.csv
 Average(?) rate of flow leaving hydroelectric plant.
+
+Space Scale: Barra Bonita
+
+Time scale: daily
 
 #### Variables
 - **Date**: Day.
@@ -59,26 +83,36 @@ Average(?) rate of flow leaving hydroelectric plant.
 ### Percent_Vol_Used.csv
 Percentage of useful(?) volume. (Translation needed; what does "Volume Útil" mean?)
 
+Space Scale: Barra Bonita
+
+Time scale: daily
+
 #### Variables
 - **Date**: Day.
 - **Percent_Vol_Used**: meaning tbd.
 
 ### group_waterlevel_data.csv
+
+Daily water level measurements at Barra Bonita
+
 Space Scale: Barra Bonita
 
 Time Scale: Daily 
 
-Daily water level measurements at Barra Bonita
+
 
 - **date**: YYYY-MM-DD
 - **waterlevel**: meters (probably height from sealevel)
 
 ### group_energy_exchange_data.csv
+
+Daily energy exchange measurments at boundry lines of the southeast/central energy region.
+
 Space Scale: Southeast/central
 
 Time Scale: Daily
 
-Daily energy exchange measurments at boundry lines of the southeast/central energy region.
+
 
 - **date**: YYYY-MM-DD
 - **physical_energy_exchange**: physical energy exchange measured at boundery lines of southeast district (GWh)
@@ -110,15 +144,36 @@ Units and meaning are unclear for Capacity
 - **Date**: Date and time of measurement (Month and Year)
 - **Capacity**: Substation Transformation Capacity (MVA)
 
-### energy_charge.csv
-Region: south-east/central-west
-Time scale:  1/1/16 - 12/31/20 
-Amount of energy charge day-to-day in south-east/central-west, 1/1/16 to 12/31/20
 
-variables: date (daily), Amount of energy charge (Unit: GWh)
+### Affluent_Natural_Energy_SE:MidW.csv
 
-### hourly_load.csv
-Region: south-east/central-west
-Time scale:  1/1/16 - 12/31/20, each day, hourly
-Amount of hourly load (Unit: MWh/h), hour-to-hour, daily
+Space: Southeast/MidWest
+
+Time:Daily
+
+Units: MWmed
+
+### Affluent_Natural_Energy_TieteBasin.csv
+
+Space: Tiete Basin
+
+Time: Daily
+
+Units: MWmed
+
+### Maximum_Demand.csv
+
+Space: Southeast/MidWest
+
+Time: Daily
+
+Units: MW
+
+### TransmissionLines_Length.csv
+
+Space: Brazil
+
+Time: Monthly
+
+Units: km
 
