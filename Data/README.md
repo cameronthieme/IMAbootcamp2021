@@ -82,8 +82,11 @@ Time scale: Daily
 
 ### nrg_capacity.csv
 Subsytem energy capacity for Southwest/Central Region, 1/1/16 to 12/31/20
+
 Space Scale: Southwest/Central Region
+
 Time scale: monthly
+
 Units and meaning are unclear for Capacity
 - **Date**: Date and time of measurement (Month and Year)
 - **Capacity**: Substation Transformation Capacity (MVA)
