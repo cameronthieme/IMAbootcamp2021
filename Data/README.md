@@ -60,12 +60,10 @@ Percentage of useful(?) volume. (Translation needed; what does "Volume Útil" me
 - **Percent_Vol_Used**: meaning tbd.
 
 ### group_waterlevel_data.csv
-Daily waterlevel measurements at Barra Bonita
 - **date**: YYYY-MM-DD
 - **waterlevel**: meters (probably height from sealevel)
 
 ### group_energy_exchange_data.csv
-Daily energy exchange data for the southeast region. 
 - **date**: YYYY-MM-DD
 - **physical_energy_exchange**: physical energy exchange measured at boundery lines of southeast district (GWh)
 - **liquid_energy_exchange**: liquid energy exchange measured at boundery lines of southeast district (GWh)
@@ -77,11 +75,15 @@ Small description
 
 ### nrg_generated.csv
 Amount of energy generated (GWh), measured daily at Barra Bonita, 1/1/16 to 12/31/20
+Space Scale: Barra Bonita
+Time scale: Daily
 - **Date**: Date and time of measurement
 - **Energy Generated (GWh)**: Amount of energy generated (GWh)
 
 ### nrg_capacity.csv
 Subsytem energy capacity for Southwest/Central Region, 1/1/16 to 12/31/20
-Units and meaning are unclear
+Space Scale: Southwest/Central Region
+Time scale: monthly
+Units and meaning are unclear for Capacity
 - **Date**: Date and time of measurement (Month and Year)
 - **Capacity**: Substation Transformation Capacity (MVA)
