@@ -66,10 +66,20 @@ Percentage of useful(?) volume. (Translation needed; what does "Volume Útil" me
 ### group_energy_exchange_data.csv
 - **date**: YYYY-MM-DD
 - **physical_energy_exchange**: physical energy exchange measured at boundery lines of southeast district (GWh)
-- **liquid_energy_exchange**: liquid energy exchange measured at boundery lines of southeast district (GWh) (Note: liquid may translate to something like "net"... in which case liquid energy exchange is net energy exchange)
-
+- **liquid_energy_exchange**: liquid energy exchange measured at boundery lines of southeast district (GWh)
 
 ### New_Dataset.csv
 Small description
 - **var1**
-- 
+
+
+### nrg_generated.csv
+Amount of energy generated (GWh), measured daily at Barra Bonita, 1/1/16 to 12/31/20
+- **Date**: Date and time of measurement
+- **Energy Generated (GWh)**: Amount of energy generated (GWh)
+
+### nrg_capacity.csv
+Subsytem energy capacity for Southwest/Central Region, 1/1/16 to 12/31/20
+Units and meaning are unclear
+- **Date**: Date and time of measurement (Month and Year)
+- **Capacity**: Substation Transformation Capacity (MVA)
