@@ -64,8 +64,8 @@ Percentage of useful(?) volume. (Translation needed; what does "Volume Útil" me
 - **Percent_Vol_Used**: meaning tbd.
 
 ### group_waterlevel_data.csv
-Region: Barra Bonita
-Granularity: Daily 
+Space Scale: Barra Bonita
+Time Scale: Daily 
 
 Daily water level measurements at Barra Bonita
 
@@ -73,8 +73,8 @@ Daily water level measurements at Barra Bonita
 - **waterlevel**: meters (probably height from sealevel)
 
 ### group_energy_exchange_data.csv
-Region: Southeast/central
-Granularity: Daily
+Space Scale: Southeast/central
+Time Scale: Daily
 
 Daily energy exchange measurments at boundry lines of the southeast/central energy region.
 
