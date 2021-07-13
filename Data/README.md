@@ -4,6 +4,10 @@ Data downloaded from the ONS (Operador Nacional do Sistema Elétrico) [webpage](
 All data is daily (except where otherwise noted), and goes from January 1, 2015 to December 31, 2020. 
 All data is at the closest level to Barra Bonita, Tiete, Sao Paulo in the Sudeste/Centro-Oeste subsystem. 
 
+## Constants
+
+The installed generation capacity for Barra Bonita: 140 MW.
+
 ## The csv files
 
 ### Marginal_Cost_Weekly_Mean.csv
