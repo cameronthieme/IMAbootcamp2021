@@ -48,7 +48,7 @@ Time Scale: daily
 
 -***energy_generated***: energy generated in GWh
 
--***energy_stored***: energy stored in GWH
+-***energy_stored***: energy stored in GWH throughout the Southeast/Central-west region
 
 -***physical_energy_exchange***: physical energy exchanged at boundry lines of Southeast/Central-west region in GWh
 
