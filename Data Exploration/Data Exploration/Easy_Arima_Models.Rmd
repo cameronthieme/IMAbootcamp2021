@@ -1,0 +1,121 @@
+---
+title: "Simple Exploration"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+```
+
+```{r}
+DF=read_csv(('../../Data/aggragate_daily_data.csv'))
+DF=DF %>% mutate(year=year(date), month=month(date),day=day(date))
+DF %>% mutate(month_day=100*month+day) %>% ggplot(aes(x=month_day, y=water_level,color=factor(year)))+geom_line()
+
+DF=DF %>% group_by(year,month) %>% summarise(water_level=mean(water_level)) %>% 
+  mutate(year_month=100*year+month)
+
+DF %>% ggplot(aes(x=month,color=factor(year),y=water_level))+geom_line()
+dim(DF)
+
+```
+
+
+## Auto Arima
+```{r}
+library(forecast)
+DF=DF %>% arrange(year_month)
+y=ts(DF$water_level,start=2016,frequency = 12)
+a1 <- subset(y, end = 48)
+a2 <- subset(y, start = 49)
+y=a1
+ggtsdisplay(y)
+ggtsdisplay(diff(y))
+```
+
+```{r}
+auto.arima(y)
+```
+
+
+
+
+```{r}
+Model=Arima(y,c(0,1,0),c(1,1,0))
+checkresiduals(Model)
+Model
+```
+
+```{r}
+autoplot(forecast(Model,12))+autolayer(a2)
+```
+
+
+
+
+```{r}
+DF=read_csv(('../../Data/aggragate_daily_data.csv'))
+DF=DF %>% mutate(year=year(date), month=month(date),day=day(date))
+DF %>% mutate(month_day=100*month+day) %>% ggplot(aes(x=month_day, y=maximum_demand,color=factor(year)))+geom_line()
+
+DF=DF %>% group_by(year,month) %>% summarise(maximum_demand=mean(maximum_demand)) %>% 
+  mutate(year_month=100*year+month)
+
+DF %>% ggplot(aes(x=month,color=factor(year),y=maximum_demand))+geom_line()
+dim(DF)
+```
+
+
+
+```{r}
+library(forecast)
+DF=DF %>% arrange(year_month)
+y=ts(DF$maximum_demand,start=2016,frequency = 12)
+#y=log(y)
+a1 <- subset(y, end = 36)
+a2 <- subset(y, start = 37)
+y=a1
+ggtsdisplay(y)
+ggtsdisplay(diff(y))
+```
+
+
+```{r}
+auto.arima(y,lambda="auto")
+```
+
+```{r}
+Model=Arima(y,c(0,1,0),c(0,1,0),lambda=0)
+checkresiduals(Model)
+Model
+```
+
+```{r}
+autoplot(forecast(Model,24))+autolayer(a2)
+```
+
+```{r}
+forecast(Model)
+```
+
+
+
+```{r}
+DF=read_csv(('../../Data/aggragate_daily_data.csv'))
+
+DF %>% ggplot(aes(x=date))+geom_line(aes(y=water_level,group=1))
+DF %>% ggplot(aes(x=date))+geom_line(aes(y=energy_stored,group=1),color='blue')
+
+```
+
+
+
+
+
+
+
+
+
+
