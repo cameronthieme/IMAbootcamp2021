@@ -1,5 +1,5 @@
 ---
-title: "R_scratchwork"
+title: "Linear_Correlations"
 output: html_document
 ---
 ---
@@ -30,7 +30,7 @@ library(glmnet)
 ```
 
 ```{r}
-daily <- read.csv("aggragate_daily_data_2000to2020.csv")
+daily <- read.csv('./Data/1999 to 2021/aggragate_daily_data_2000to2020.csv')
 names(daily)
 ```
 
