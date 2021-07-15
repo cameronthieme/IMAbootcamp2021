@@ -1,0 +1,152 @@
+---
+title: "R_scratchwork"
+output: html_document
+---
+---
+title: "R Project"
+output: html_document
+---
+
+```{r,  include=FALSE}
+library(ggplot2)    
+library(tidyverse)  
+library(gridExtra)
+library(mlbench)
+library(tidyverse)
+library(ggmap)
+library(gplots)
+library(GGally)
+library(lubridate)
+knitr::opts_chunk$set(tidy = FALSE, message=FALSE, warning=FALSE)
+options(htmltools.dir.version = FALSE)
+library(rgdal)
+library(maptools)
+
+library(leaps)
+library(caret)
+library(lubridate)
+library(mosaicData)
+library(glmnet)
+```
+
+```{r}
+daily <- read.csv("aggragate_daily_data_2000to2020.csv")
+names(daily)
+```
+
+```{r}
+lowerFn <- function(data, mapping, method = "lm", ...) {
+  p <- ggplot(data = data, mapping = mapping) +
+    geom_point(colour = "blue") +
+    geom_smooth(method = method, color = "red", ...)
+  p
+}
+```
+
+**Creating correlation matrix with ggpairs**
+```{r}
+pairs_plot <- ggpairs(
+  daily[,3:12], lower = list(continuous = wrap(lowerFn, method = "lm")),
+  diag = list(continuous = wrap("barDiag", color = "blue")),
+  upper = list(continuous = wrap("cor", size = 2))
+)
+pairs_plot
+```
+
+**Removing index and date from data**
+```{r}
+daily_trunc <- daily %>%
+  select(-X, -date)
+```
+
+**Creating table of correlations and removing redundancies**
+
+```{r}
+corr_table <- cor(daily_trunc) %>%
+  as_tibble(rownames = "var1") %>%
+    pivot_longer(cols = -var1, names_to = "var2", values_to = "coeff") %>%
+    filter(var1 != var2) %>%
+    arrange(desc(abs(coeff))) 
+
+corr_table <- distinct(corr_table, coeff, .keep_all = TRUE)
+corr_table
+```
+
+**Variables with high-ish correlation to energy generated**
+
+```{r}
+energy_gen_corr <- cor(daily_trunc) %>%
+  as_tibble(rownames = "var1") %>%
+    pivot_longer(cols = -var1, names_to = "var2", values_to = "coeff") %>%
+    filter(var1 == "energy_generated") %>%
+    arrange(desc(abs(coeff))) 
+energy_gen_corr
+```
+
+**Shifting influent flow, water level, effluent flow, turbine flow back and finding correlations with energy generation**
+
+```{r}
+lagged_daily <- daily %>%
+  select(date, influent_flow, water_level, turbine_flow, effluent_flow, energy_generated) %>%
+  mutate(influent_flow_1 = lag(influent_flow, 1, order_by = date),
+         influent_flow_3 = lag(influent_flow, 3, order_by = date),
+         influent_flow_7 = lag(influent_flow, 7, order_by = date),
+         influent_flow_21 = lag(influent_flow, 21, order_by = date),
+         water_level_1 = lag( water_level, 1, order_by = date),
+         water_level_3 = lag( water_level, 3, order_by = date),
+         water_level_7 = lag( water_level, 7, order_by = date),
+         water_level_21 = lag(water_level, 21, order_by = date),
+         effluent_flow_1 = lag(effluent_flow, 1, order_by = date),
+         effluent_flow_3 = lag(effluent_flow, 3, order_by = date),
+         effluent_flow_7 = lag(effluent_flow, 7, order_by = date),
+         effluent_flow_21 = lag(effluent_flow, 21, order_by = date),
+         turbine_flow_1 = lag( turbine_flow, 1, order_by = date),
+         turbine_flow_3 = lag( turbine_flow, 3, order_by = date),
+         turbine_flow_7 = lag( turbine_flow, 7, order_by = date),
+         turbine_flow_21 = lag( turbine_flow, 21, order_by = date)) %>%
+  select(-date)
+
+
+lagged_energy_gen_corr <- cor(drop_na(lagged_daily)) %>%
+  as_tibble(rownames = "var1") %>%
+    pivot_longer(cols = -var1, names_to = "var2", values_to = "coeff") %>%
+    filter(var1 == "energy_generated") %>%
+    arrange(var2) 
+lagged_energy_gen_corr
+
+```
+
+*LASSO on additive model*
+```{r}
+lasso_model <- train(
+  energy_generated ~ ., data = daily_trunc,
+  method = "glmnet",
+  trControl = trainControl(method = "cv", number = 10),
+  tuneGrid = data.frame(alpha = 1, lambda = 10^seq(-3, 1, length = 100)),
+  metric = "MAE"
+)
+```
+
+```{r}
+# Plot coefficients for each LASSO
+plot(lasso_model$finalModel, xvar = "lambda", label = TRUE, col = rainbow(11))
+# Codebook for which variables the numbers correspond to
+rownames(lasso_model$finalModel$beta)
+```
+```{r}
+plot(lasso_model)
+coef(lasso_model$finalModel, 1)
+```
+```{r}
+
+lasso_model$bestTune$lambda
+```
+```{r}
+
+# lasso_model$results gives metrics for every LASSO at every lambda
+#lasso_model$results
+
+# Just focus on those that correspond to the best lambda
+lasso_model$results %>% 
+  filter(lambda == lasso_model$bestTune$lambda)
+```
