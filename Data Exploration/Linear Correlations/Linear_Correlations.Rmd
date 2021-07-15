@@ -3,7 +3,7 @@ title: "Linear_Correlations"
 output: html_document
 ---
 ---
-title: "R Project"
+title: "Linear_Correlations"
 output: html_document
 ---
 
@@ -30,7 +30,7 @@ library(glmnet)
 ```
 
 ```{r}
-daily <- read.csv('./Data/1999 to 2021/aggragate_daily_data_2000to2020.csv')
+daily <- read.csv('../../Data/1999_2021/aggragate_daily_data_2000to2020.csv')
 names(daily)
 ```
 
@@ -46,22 +46,19 @@ lowerFn <- function(data, mapping, method = "lm", ...) {
 **Creating correlation matrix with ggpairs**
 ```{r}
 pairs_plot <- ggpairs(
-  daily[,3:12], lower = list(continuous = wrap(lowerFn, method = "lm")),
+  daily[,3:11], lower = list(continuous = wrap(lowerFn, method = "lm")),
   diag = list(continuous = wrap("barDiag", color = "blue")),
   upper = list(continuous = wrap("cor", size = 2))
 )
 pairs_plot
 ```
 
-**Removing index and date from data**
-```{r}
-daily_trunc <- daily %>%
-  select(-X, -date)
-```
-
 **Creating table of correlations and removing redundancies**
 
 ```{r}
+daily_trunc <- daily %>%
+  select(-X, -date)
+
 corr_table <- cor(daily_trunc) %>%
   as_tibble(rownames = "var1") %>%
     pivot_longer(cols = -var1, names_to = "var2", values_to = "coeff") %>%
@@ -72,7 +69,7 @@ corr_table <- distinct(corr_table, coeff, .keep_all = TRUE)
 corr_table
 ```
 
-**Variables with high-ish correlation to energy generated**
+**Correlations of all variables to energy generated**
 
 ```{r}
 energy_gen_corr <- cor(daily_trunc) %>%
@@ -87,7 +84,7 @@ energy_gen_corr
 
 ```{r}
 lagged_daily <- daily %>%
-  select(date, influent_flow, water_level, turbine_flow, effluent_flow, energy_generated) %>%
+  select(date, influent_flow, water_level, effluent_flow, energy_generated) %>%
   mutate(influent_flow_1 = lag(influent_flow, 1, order_by = date),
          influent_flow_3 = lag(influent_flow, 3, order_by = date),
          influent_flow_7 = lag(influent_flow, 7, order_by = date),
@@ -99,11 +96,7 @@ lagged_daily <- daily %>%
          effluent_flow_1 = lag(effluent_flow, 1, order_by = date),
          effluent_flow_3 = lag(effluent_flow, 3, order_by = date),
          effluent_flow_7 = lag(effluent_flow, 7, order_by = date),
-         effluent_flow_21 = lag(effluent_flow, 21, order_by = date),
-         turbine_flow_1 = lag( turbine_flow, 1, order_by = date),
-         turbine_flow_3 = lag( turbine_flow, 3, order_by = date),
-         turbine_flow_7 = lag( turbine_flow, 7, order_by = date),
-         turbine_flow_21 = lag( turbine_flow, 21, order_by = date)) %>%
+         effluent_flow_21 = lag(effluent_flow, 21, order_by = date)) %>%
   select(-date)
 
 
@@ -116,13 +109,13 @@ lagged_energy_gen_corr
 
 ```
 
-*LASSO on additive model*
+# LASSO on additive model
 ```{r}
 lasso_model <- train(
   energy_generated ~ ., data = daily_trunc,
   method = "glmnet",
   trControl = trainControl(method = "cv", number = 10),
-  tuneGrid = data.frame(alpha = 1, lambda = 10^seq(-3, 1, length = 100)),
+  tuneGrid = data.frame(alpha = 1, lambda = 10^seq(-5, 1, length = 1000)),
   metric = "MAE"
 )
 ```
@@ -130,19 +123,13 @@ lasso_model <- train(
 ```{r}
 # Plot coefficients for each LASSO
 plot(lasso_model$finalModel, xvar = "lambda", label = TRUE, col = rainbow(11))
-# Codebook for which variables the numbers correspond to
-rownames(lasso_model$finalModel$beta)
 ```
 ```{r}
 plot(lasso_model)
-coef(lasso_model$finalModel, 1)
+coef(lasso_model$finalModel, lasso_model$bestTune$lambda)
 ```
-```{r}
 
-lasso_model$bestTune$lambda
-```
 ```{r}
-
 # lasso_model$results gives metrics for every LASSO at every lambda
 #lasso_model$results
 
@@ -150,3 +137,120 @@ lasso_model$bestTune$lambda
 lasso_model$results %>% 
   filter(lambda == lasso_model$bestTune$lambda)
 ```
+
+Note: suspiciously high Rsquared. Possibly because turbine flow is directly related to energy generated. Attempt LASSO without these variables? Attempt LASSO with lagged variables?
+
+**Running LASSO without poured flow, turbine flow, effluent flow, or water level**
+
+```{r}
+lasso_model_1 <- train(
+  energy_generated ~ energy_charge + influent_flow + volume_used + energy_stored + maximum_demand, data = daily_trunc,
+  method = "glmnet",
+  trControl = trainControl(method = "cv", number = 10),
+  tuneGrid = data.frame(alpha = 1, lambda = 10^seq(-5, 1, length = 1000)),
+  metric = "MAE"
+)
+
+# Plot coefficients for each LASSO
+plot(lasso_model_1$finalModel, xvar = "lambda", label = TRUE, col = rainbow(5))
+
+plot(lasso_model_1)
+
+coef(lasso_model_1$finalModel, lasso_model_1$bestTune$lambda)
+
+lasso_model_1$results %>% 
+  filter(lambda == lasso_model_1$bestTune$lambda)
+```
+
+**Notes**: Moderately significant Rsquared after removing obvious variables.
+
+**Running LASSO with 7 day lag**
+
+```{r}
+daily_lagged_7 <- daily %>%
+  mutate(energy_charge_7 = lag(energy_charge, 7, order_by = date),
+         effluent_flow_7 = lag(effluent_flow, 7, order_by = date),
+         influent_flow_7 = lag(influent_flow, 7, order_by = date),
+         volume_used_7 = lag(volume_used, 7, order_by = date),
+         poured_flow_7 = lag(poured_flow, 7, order_by = date),
+         water_level_7 = lag(water_level, 7, order_by = date),
+         energy_stored_7 = lag(energy_stored, 7, order_by = date),
+         maximum_demand_7 = lag(maximum_demand, 7, order_by = date),
+         ) %>%
+  select(-date, -energy_charge,-effluent_flow, -influent_flow, -volume_used, -energy_stored, -poured_flow, -water_level, -energy_stored, -maximum_demand) %>%
+  drop_na()
+
+lasso_model_7 <- train(
+  energy_generated ~ ., data = daily_lagged_7,
+  method = "glmnet",
+  trControl = trainControl(method = "cv", number = 10),
+  tuneGrid = data.frame(alpha = 1, lambda = 10^seq(-5, 1, length = 1000)),
+  metric = "MAE"
+)
+
+# Plot coefficients for each LASSO
+plot(lasso_model_7$finalModel, xvar = "lambda", label = TRUE, col = rainbow(5))
+
+plot(lasso_model_7)
+
+coef(lasso_model_7$finalModel, lasso_model_7$bestTune$lambda)
+
+lasso_model_7$results %>% 
+  filter(lambda == lasso_model_7$bestTune$lambda)
+```
+
+*Note*: Including all variables at a 7 day lag results in a higher Rsquared than using a few of them with 0 lag, but LASSO doesn't eliminate any of them. Overfitted?
+
+**Running LASSO without poured flow, turbine flow, effluent flow, or water level and lagging by 21 days**
+
+```{r}
+daily_lagged_21 <- daily %>%
+  mutate(energy_charge_21 = lag(energy_charge, 21, order_by = date),
+         effluent_flow_21 = lag(effluent_flow, 21, order_by = date),
+         influent_flow_21 = lag(influent_flow, 21, order_by = date),
+         volume_used_21 = lag(volume_used, 21, order_by = date),
+         poured_flow_21 = lag(poured_flow, 21, order_by = date),
+         water_level_21 = lag(water_level, 21, order_by = date),
+         energy_stored_21 = lag(energy_stored, 21, order_by = date),
+         maximum_demand_21 = lag(maximum_demand, 21, order_by = date),
+         ) %>%
+  select(-date, -energy_charge,-effluent_flow, -influent_flow, -volume_used, -energy_stored, -poured_flow, -water_level, -energy_stored, -maximum_demand) %>%
+  drop_na()
+
+lasso_model_21 <- train(
+  energy_generated ~ ., data = daily_lagged_21,
+  method = "glmnet",
+  trControl = trainControl(method = "cv", number = 10),
+  tuneGrid = data.frame(alpha = 1, lambda = 10^seq(-5, 1, length = 1000)),
+  metric = "MAE"
+)
+
+# Plot coefficients for each LASSO
+plot(lasso_model_21$finalModel, xvar = "lambda", label = TRUE, col = rainbow(5))
+
+plot(lasso_model_21)
+
+coef(lasso_model_21$finalModel, lasso_model_21$bestTune$lambda)
+
+lasso_model_21$results %>% 
+  filter(lambda == lasso_model_21$bestTune$lambda)
+```
+
+*Note*: significant drop in Rsquared, terrible estimate. 
+
+# Conclusion
+
+LASSO is not useful for predicting. Not surprising given the paper said that linear models are insufficient for optimizing hydroelectric dams. Probably wouldn't be useful for forecasting either.
+
+
+
+
+
+
+
+
+
+
+
+
+
