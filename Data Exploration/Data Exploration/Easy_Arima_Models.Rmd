@@ -11,7 +11,7 @@ library(lubridate)
 ```
 
 ```{r}
-DF=read_csv(('../../Data/1999 to 2021/aggragate_daily_data_2000to2020.csv'))
+DF=read_csv(('../../Data/1999_2021/aggragate_daily_data_2000to2020.csv'))
 DF=DF %>% mutate(year=year(date), month=month(date),day=day(date)) %>% mutate(day_year=yday(date))
 DF %>% mutate(month_day=100*month+day) %>% ggplot(aes(x=day_year, y=water_level,color=factor(year)))+geom_line()
 
@@ -25,10 +25,10 @@ dim(DF)
 
 ## Auto Arima
 ```{r}
-DF=DF %>% arrange(year_month)
-y=ts(DF$water_level,start=2016,frequency = 12)
-a1 <- subset(y, end = 48)
-a2 <- subset(y, start = 49)
+DF=DF %>% mutate(year_month=year*100+month) %>%  arrange(year_month)
+y=ts(DF$water_level,start=2020,frequency = 12)
+a1 <- subset(y, end = 96)
+a2 <- subset(y, start = 97)
 y=a1
 ggtsdisplay(y)
 ggtsdisplay(diff(y))
@@ -55,7 +55,7 @@ autoplot(forecast(Model,12))+autolayer(a2)
 
 
 ```{r}
-DF=read_csv(('../../Data/1999 to 2021/aggragate_daily_data_2000to2020.csv'))
+DF=read_csv(('../../Data/1999_2021/aggragate_daily_data_2000to2020.csv'))
 DF=DF %>% mutate(year=year(date), month=month(date),day=day(date))
 DF %>% mutate(month_day=100*month+day) %>% ggplot(aes(x=month_day, y=maximum_demand,color=factor(year)))+geom_line()
 
@@ -102,7 +102,7 @@ forecast(Model)
 
 
 ```{r}
-DF=read_csv(('../../Data/1999 to 2021/aggragate_daily_data_2000to2020.csv'))
+DF=read_csv(('../../Data/1999_2021/aggragate_daily_data_2000to2020.csv'))
 
 DF %>% ggplot(aes(x=date))+geom_line(aes(y=water_level,group=1))
 DF %>% ggplot(aes(x=date))+geom_line(aes(y=energy_stored,group=1),color='blue')
@@ -124,8 +124,29 @@ rain_df %>% group_by(year,month) %>%
   ggplot(aes(x=month,y=rain_mm,color=factor(year)))+geom_point()
 ```
 
+Rainy days per year
+
+```{r}
+rain_df %>% group_by(year, month, day, date) %>% summarise(rain_mm=sum(rain_mm,na.rm=TRUE)) %>% 
+  ungroup() %>% mutate(is_rainy=(rain_mm>0)) %>% group_by(year,month) %>% summarize(rainy_days=sum(is_rainy)) %>% 
+  ggplot(aes(x=month,y=rainy_days,color=factor(year)))+geom_line( )
+
+rain_df %>% group_by(year, month, day, date) %>% summarise(rain_mm=sum(rain_mm,na.rm=TRUE)) %>% 
+  ungroup() %>% mutate(is_rainy=(rain_mm>0)) %>% group_by(year,month) %>% summarize(rainy_days=sum(is_rainy)) %>% 
+  ggplot(aes(x=month,y=rainy_days,fill=factor(year)))+geom_bar(stat='identity')
+
+rain_df %>% group_by(year, month, day, date) %>% summarise(rain_mm=sum(rain_mm,na.rm=TRUE)) %>% 
+  ungroup() %>% mutate(is_rainy=(rain_mm>0)) %>% group_by(year) %>% summarize(rainy_days=sum(is_rainy)) %>% 
+  ggplot(aes(x=year,y=rainy_days))+geom_bar(stat = 'identity')+geom_text(aes(label=rainy_days))
 
 
+```
+
+```{r}
+rain_var=rain_df %>% group_by(year, month, day, date) %>% summarise(rain_mm=sum(rain_mm,na.rm=TRUE)) %>% 
+    ungroup() %>%  arrange(date)
+rain_var <- rain_var$rain_mm
+```
 
 
 
