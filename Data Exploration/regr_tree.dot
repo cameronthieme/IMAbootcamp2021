@@ -1,0 +1,32 @@
+digraph Tree {
+node [shape=box] ;
+0 [label="effluent_flow_14 <= 330.98\nmse = 0.43\nsamples = 5186\nvalue = 1.52"] ;
+1 [label="energy_stored_30 <= 72053.598\nmse = 0.279\nsamples = 2660\nvalue = 1.24"] ;
+0 -> 1 [labeldistance=2.5, labelangle=45, headlabel="True"] ;
+2 [label="effluent_flow_14 <= 213.36\nmse = 0.185\nsamples = 1367\nvalue = 1.055"] ;
+1 -> 2 ;
+3 [label="mse = 0.181\nsamples = 545\nvalue = 0.898"] ;
+2 -> 3 ;
+4 [label="mse = 0.161\nsamples = 822\nvalue = 1.16"] ;
+2 -> 4 ;
+5 [label="poured_flow <= 113.5\nmse = 0.304\nsamples = 1293\nvalue = 1.434"] ;
+1 -> 5 ;
+6 [label="mse = 0.253\nsamples = 1250\nvalue = 1.393"] ;
+5 -> 6 ;
+7 [label="mse = 0.295\nsamples = 43\nvalue = 2.635"] ;
+5 -> 7 ;
+8 [label="poured_flow <= 88.0\nmse = 0.419\nsamples = 2526\nvalue = 1.815"] ;
+0 -> 8 [labeldistance=2.5, labelangle=-45, headlabel="False"] ;
+9 [label="volume_used <= 68.26\nmse = 0.359\nsamples = 2168\nvalue = 1.703"] ;
+8 -> 9 ;
+10 [label="mse = 0.215\nsamples = 711\nvalue = 1.415"] ;
+9 -> 10 ;
+11 [label="mse = 0.368\nsamples = 1457\nvalue = 1.844"] ;
+9 -> 11 ;
+12 [label="energy_stored_30 <= 63547.291\nmse = 0.254\nsamples = 358\nvalue = 2.488"] ;
+8 -> 12 ;
+13 [label="mse = 0.33\nsamples = 67\nvalue = 2.116"] ;
+12 -> 13 ;
+14 [label="mse = 0.197\nsamples = 291\nvalue = 2.574"] ;
+12 -> 14 ;
+}
