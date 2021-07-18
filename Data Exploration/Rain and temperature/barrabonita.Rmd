@@ -121,7 +121,7 @@ DF = DF %>%
 ```{r}
 # Visualizing rain, montly.
 DF %>%
-  ggplot(aes(x = month_day, y = rain))+
+  ggplot(aes(x = month.x, y = rain))+
   geom_smooth(color = "royalblue3")+
   labs(x = "Month", y = "Rain (mm)", title = "Rain per month in Barra Bonita")
 
