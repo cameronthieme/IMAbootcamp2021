@@ -1,0 +1,157 @@
+---
+title: "Barra Bonita"
+output: html_document
+---
+
+
+#Libraries
+```{r}
+library(dplyr)
+library(ggplot2)
+library(leaps)
+library(caret)
+library(lubridate)
+library(mosaicData)
+library(glmnet)
+library(forecast)
+library(scatterplot3d)
+library(car)
+library(rgl)
+library(GGally)
+
+```
+
+**Data Source** The data comes from 
+
+```{r}
+daily_aggregate <- read.csv("/home/ana/Documents/IMA Math Boot camp/ima2021_project-main/Data/2016_2020/aggragate_daily_data.csv")
+
+```
+
+```{r}
+#change the date format
+daily_aggregate = daily_aggregate %>%
+  mutate(year= year(date), month = month(date), day= day(date))
+
+daily_aggregate = daily_aggregate %>%
+  mutate(month_day = 31*(month-1) + day)
+
+daily_aggregate %>%
+  ggplot(aes(x = month_day, y=water_level, color=factor(year)))+
+  geom_line()
+
+#energy generated vs month_day
+
+daily_aggregate %>%
+  ggplot(aes(x = month_day, y=energy_generated, color=factor(year)))+
+  geom_line()
+
+```
+
+```{r}
+daily_aggregate = daily_aggregate %>%
+  mutate(year_month = 12*(year-1) + month)
+
+
+daily_aggregate %>%
+  ggplot(aes(x = year_month, y=water_level, color=factor(year)))+
+  geom_line()
+
+```
+  
+  
+**Visualizing data**
+
+```{r}
+
+#affluent energy vs year_month
+daily_aggregate %>%
+  ggplot(aes(x = year_month, y = affluent_natural_energy_southeast))+
+  geom_smooth()
+
+#affluent energy vs energy generated
+daily_aggregate %>%
+  ggplot(aes(x = affluent_natural_energy_southeast, y = energy_generated, color = month))+
+  geom_point(alpha = 0.8)+
+  geom_smooth(method = "lm", color = "black")
+
+#demand vs energy generated
+daily_aggregate %>%
+  ggplot(aes(x = maximum_demand, y = energy_generated, color = month))+
+  geom_point(alpha = 0.8)+
+  geom_smooth(method = 'lm', color = "black")
+
+#affluent energy vs demand
+daily_aggregate %>%
+  ggplot(aes(x = affluent_natural_energy_southeast, y = maximum_demand, color = month))+
+  geom_point(alpha = 0.8)+
+  geom_smooth(method = "lm", color = "black")
+
+
+```
+
+
+**Energy generated vs rain vs max temperature daily**
+```{r}
+#Importing weather information
+
+weather <- read.csv("/home/ana/Documents/IMA Math Boot camp/ima2021_project-main/Data/historic_weather.csv")
+weather[is.na(weather)] <- 0
+
+daily_weather <- weather %>%
+  group_by(date) %>%
+  summarise( rain = sum(rain_mm), max_temp = max(temp_max), temp_min = min(temp_min))
+
+#change the date format
+daily_weather = daily_weather %>%
+  mutate(year= year(date), month = month(date), day= day(date))
+
+daily_weather = daily_weather %>%
+  mutate(month_day = 31*(month-1) + day)
+
+#merge and clean
+DF <- merge(daily_weather, daily_aggregate, by="month_day")
+DF = DF %>%
+  filter(year.x > 2008) %>% 
+  select( year.x, month.x, year_month, month_day,  energy_generated, rain, max_temp,  temp_min, maximum_demand, volume_used)
+
+```
+
+
+```{r}
+# Visualizing rain, montly.
+DF %>%
+  ggplot(aes(x = month_day, y = rain))+
+  geom_smooth(color = "royalblue3")+
+  labs(x = "Month", y = "Rain (mm)", title = "Rain per month in Barra Bonita")
+
+# Visualizing temperature, monthly.
+DF %>%
+  ggplot(aes(x = month.x, y = max_temp))+
+  geom_smooth(color = "firebrick")+
+  labs(x = "Month", y = "Maximum temperature (C)", title = "Maximum temperature per month in Barra Bonita")
+
+# Rain vs energy generated
+DF %>%
+  ggplot(aes(x = lag(rain, 10), y = energy_generated, color = max_temp))+
+  geom_point(alpha = 0.7)+
+  scale_color_gradient(low = "navyblue", high = "red3" )+
+  labs(x = "Rain -lag 10- (mm)", y = "Energy generated (GW)", title = "Rain vs Energy generated")+
+  geom_smooth(method = "lm", color = "black")
+
+#temperature vs energy generated
+DF %>%
+  ggplot(aes(x = max_temp, y = energy_generated, color = rain))+
+  geom_point(alpha = 0.7)+
+  scale_color_gradient(low = "gold", high = "navyblue")+
+  labs(x= "Maximum temperature (C)", y= "Energy generated (GW)", title = "Maximum temperature vs Energy generated")+
+  geom_smooth(method = "lm", color = "black")
+
+# temperature vs rain vs energy generated
+scatterplot3d(DF[, 5:7])
+
+```
+```{r}
+ggpairs(DF[,5:10], aes(alpha = 0.4))
+```
+
