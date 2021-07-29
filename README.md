@@ -21,7 +21,7 @@ We use publicly available data from many Brazilian entities:
   - Daily, weekly, monthly scale depending on variable 
   - Generally complete, with few missing entries 
 
-- Weather data from mixed sources ( [INMET](https://portal.inmet.gov.br/dadoshistoricos) and )
+- Weather data from mixed sources ( [INMET](https://portal.inmet.gov.br/dadoshistoricos) and [CPTEC](https://bacias.cptec.inpe.br/) )
 
   - aggregated to basin, state, or region 
   - Daily, weekly, monthly scale 
