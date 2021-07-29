@@ -1,0 +1,218 @@
+---
+title: "Simple Exploration"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(forecast)
+library(lubridate)
+```
+
+```{r}
+DF=read_csv(('../../Data/1999_2021/aggragate_daily_data_2000to2020.csv'))
+DF=DF %>% mutate(year=year(date), month=month(date),day=day(date)) %>% mutate(day_year=yday(date))
+DF %>% mutate(month_day=100*month+day) %>% ggplot(aes(x=day_year, y=water_level,color=factor(year)))+geom_line()
+
+DF=DF%>%  group_by(year,month) %>% summarise(water_level=mean(water_level)) 
+
+DF %>% ggplot(aes(x=month,color=factor(year),y=water_level))+geom_line()
+dim(DF)
+
+```
+
+
+## Auto Arima
+```{r}
+DF=DF %>% filter(year>=2008) %>%  mutate(year_month=year*100+month) %>%  arrange(year_month)
+y=ts(DF$water_level,start=2008,frequency = 12)
+a1 <- subset(y, end = 120)
+a2 <- subset(y, start = 121)
+y=a1
+ggtsdisplay(y)
+ggtsdisplay(diff(y))
+
+Model=Arima(y,c(0,1,0),c(1,1,0))
+checkresiduals(Model)
+Model
+```
+
+```{r}
+y_pred=forecast(Model,12)
+autoplot(y_pred)+autolayer(a2)
+
+#Mean Squared Error
+sum((y_pred$mean-a2)^2)
+```
+
+
+
+
+```{r}
+DF=read_csv(('../../Data/1999_2021/aggragate_daily_data_2000to2020.csv'))
+DF=DF %>% mutate(year=year(date), month=month(date),day=day(date))
+DF %>% mutate(month_day=100*month+day) %>% ggplot(aes(x=month_day, y=maximum_demand,color=factor(year)))+geom_line()
+
+DF=DF %>% group_by(year,month) %>% summarise(maximum_demand=mean(maximum_demand)) %>% 
+  mutate(year_month=100*year+month)
+
+DF %>% ggplot(aes(x=month,color=factor(year),y=maximum_demand))+geom_line()
+dim(DF)
+```
+
+
+
+```{r}
+library(forecast)
+DF=DF %>% arrange(year_month)
+y=ts(DF$maximum_demand,start=2016,frequency = 12)
+#y=log(y)
+a1 <- subset(y, end = 36)
+a2 <- subset(y, start = 37)
+y=a1
+ggtsdisplay(y)
+ggtsdisplay(diff(y))
+```
+
+
+```{r}
+auto.arima(y,lambda="auto")
+```
+
+```{r}
+Model=Arima(y,c(0,1,0),c(0,1,0),lambda=0)
+checkresiduals(Model)
+Model
+```
+
+```{r}
+autoplot(forecast(Model,24))+autolayer(a2)
+```
+
+```{r}
+forecast(Model)
+```
+
+
+
+```{r}
+DF=read_csv(('../../Data/1999_2021/aggragate_daily_data_2000to2020.csv'))
+
+DF %>% ggplot(aes(x=date))+geom_line(aes(y=water_level,group=1))
+DF %>% ggplot(aes(x=date))+geom_line(aes(y=energy_stored,group=1),color='blue')
+
+```
+
+
+
+```{r}
+rain_df=read_csv('../../Data/historic_weather.csv')
+rain_df=rain_df %>% mutate(day=day(date), month=month(date), year_day=yday(date),year=year(date))
+rain_df %>% group_by(year,month,day,year_day,date) %>% 
+  summarize(rain_mm=sum(rain_mm)) %>% filter(rain_mm>0) %>% 
+  ggplot(aes(x=year_day,y=rain_mm,color=factor(year)))+geom_point()
+
+
+rain_df %>% group_by(year,month) %>% 
+  summarize(rain_mm=sum(rain_mm)) %>% filter(rain_mm>0) %>% 
+  ggplot(aes(x=month,y=rain_mm,color=factor(year)))+geom_point()
+```
+
+Rainy days per year
+
+```{r}
+rain_df %>% group_by(year, month, day, date) %>% summarise(rain_mm=sum(rain_mm,na.rm=TRUE)) %>% 
+  ungroup() %>% mutate(is_rainy=(rain_mm>0)) %>% group_by(year,month) %>% summarize(rainy_days=sum(is_rainy)) %>% 
+  ggplot(aes(x=month,y=rainy_days,color=factor(year)))+geom_line( )
+
+rain_df %>% group_by(year, month, day, date) %>% summarise(rain_mm=sum(rain_mm,na.rm=TRUE)) %>% 
+  ungroup() %>% mutate(is_rainy=(rain_mm>0)) %>% group_by(year,month) %>% summarize(rainy_days=sum(is_rainy)) %>% 
+  ggplot(aes(x=month,y=rainy_days,fill=factor(year)))+geom_bar(stat='identity')
+
+rain_df %>% group_by(year, month, day, date) %>% summarise(rain_mm=sum(rain_mm,na.rm=TRUE)) %>% 
+  ungroup() %>% mutate(is_rainy=(rain_mm>0)) %>% group_by(year) %>% summarize(rainy_days=sum(is_rainy)) %>% 
+  ggplot(aes(x=year,y=rainy_days))+geom_bar(stat = 'identity')+geom_text(aes(label=rainy_days))
+
+```
+
+```{r}
+rain_var=rain_df %>% group_by(year, month, day, date) %>% summarise(rain_mm=sum(rain_mm,na.rm=TRUE)) %>% 
+    ungroup() %>%  arrange(date)
+rain_var <- rain_var$rain_mm
+```
+
+
+## Incorporate Rain Info
+
+```{r}
+DF=read_csv(('../../Data/1999_2021/aggragate_daily_data_2000to2020.csv'))
+DF=DF %>% mutate(year=year(date), month=month(date),day=day(date)) %>% mutate(day_year=yday(date))
+DF %>% mutate(month_day=100*month+day) %>% ggplot(aes(x=day_year, y=water_level,color=factor(year)))+geom_line()
+
+DF=DF%>%  group_by(year,month) %>% summarise(water_level=mean(water_level)) 
+
+DF %>% ggplot(aes(x=month,color=factor(year),y=water_level))+geom_line()
+dim(DF)
+
+DF=DF %>% filter(year>=2007) %>%  mutate(year_month=year*100+month) %>%  arrange(year_month)
+y=ts(DF$water_level,start=2007,frequency = 12)
+a1 <- subset(y, end = 144)
+a2 <- subset(y, start = 145)
+y=a1
+ggtsdisplay(y)
+ggtsdisplay(diff(y))
+
+Model=Arima(y,c(0,1,0),c(1,1,0))
+checkresiduals(Model)
+Model
+
+y_pred=forecast(Model,12)
+autoplot(y_pred)+autolayer(a2)
+
+#Mean Squared Error
+mean((y_pred$mean-a2)^2)
+```
+
+```{r}
+rain_df=read_csv('../../Data/historic_weather.csv')
+rain_df=rain_df %>% mutate(day=day(date), month=month(date), year_day=yday(date),year=year(date)) %>% 
+  group_by(year,month,station) %>% 
+  summarize(rain_mm=sum(rain_mm)) %>% ungroup()
+
+rain_df=rain_df %>% spread(station,rain_mm)
+
+#Erase Barra Bonita
+#rain_df=rain_df %>% select(year,`A741 BARRA BONITA`)
+
+x1=rain_df %>% filter(year<=2018) %>% as.matrix()
+x2=rain_df %>% filter(year>=2019,year<=2019) %>% as.matrix()
+
+x1[is.na(x1)] <- 0
+x2[is.na(x2)] <- 0
+
+DF=read_csv(('../../Data/1999_2021/aggragate_daily_data_2000to2020.csv'))
+DF=DF %>% mutate(year=year(date), month=month(date),day=day(date)) %>% mutate(day_year=yday(date)) %>% arrange(date)
+DF %>% mutate(month_day=100*month+day) %>% ggplot(aes(x=day_year, y=water_level,color=factor(year)))+geom_line()
+
+DF=DF%>%  group_by(year,month) %>% summarise(water_level=mean(water_level)) %>% ungroup() %>% arrange(year,month) %>% filter(year>=2007)
+
+y=ts(DF$water_level,start=2007,frequency = 12)
+a1 <- subset(y, end = 144)
+a2 <- subset(y, start = 145)
+y=a1
+ggtsdisplay(y)
+ggtsdisplay(diff(y))
+
+Model=auto.arima(y,xreg =x1)
+checkresiduals(Model)
+Model
+
+y_pred=forecast(Model,12,xreg=x2)
+autoplot(y_pred)+autolayer(a2)
+
+#Mean Squared Error
+mean((y_pred$mean-a2)^2)
+```
+
+
