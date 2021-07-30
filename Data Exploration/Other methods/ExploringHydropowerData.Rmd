@@ -1,0 +1,291 @@
+---
+title: "Exploring Hydropower Data"
+output: html_document
+---
+
+```{r warning = FALSE, message = FALSE}
+library(ggplot2)
+library(dplyr)
+```
+
+I obtained my two data files from the following URLs:
+
+Water Level Data: https://tableau.ons.org.br/vizql/t/ONS_Publico/w/DadosHidrolgicos-Nveis/v/HistricoDadosHidrolgicos-NveldeMontante/viewData/sessions/8B1ECBBCC71C4D638F8D01554EB83035-1:0/views/4004428826614659792_913605811952868436?maxrows=200&viz=%7B%22worksheet%22%3A%22Simples%20N%C3%ADvel%20Montante%20Semana%20Dia%22%2C%22dashboard%22%3A%22Painel%20Simples%20N%C3%ADvel%20Montante%22%2C%22storyboard%22%3A%22Hist%C3%B3rico%20Dados%20Hidrol%C3%B3gicos%20-%20N%C3%ADvel%20de%20Montante%22%2C%22storyPointId%22%3A1%7D
+
+Physical Energy Exchange Data: https://tableau.ons.org.br/vizql/t/ONS_Publico/w/IntercmbiodeEnergia/v/HistricoIntercmbiodeEnergia/viewData/sessions/0A9825B18501452C8B9A17BDA74F5C57-1:0/views/13224932960791317914_4747245708469324137?maxrows=200&viz=%7B%22worksheet%22%3A%22Simples%20Interc%C3%A2mbio%20de%20Energia%20Barra%20Dia%22%2C%22dashboard%22%3A%22Painel%20Simples%20Interc%C3%A2mbio%20de%20Energia%22%2C%22storyboard%22%3A%22Hist%C3%B3rico%20Interc%C3%A2mbio%20de%20Energia%22%2C%22storyPointId%22%3A5%7D
+
+Liquid Energy Exchange Data: https://tableau.ons.org.br/vizql/t/ONS_Publico/w/IntercmbiodeEnergia/v/HistricoIntercmbiodeEnergia/viewData/sessions/5ADEC5F1546640698F099DC0883D5904-1:1/views/13224932960791317914_4747245708469324137?maxrows=200&viz=%7B%22worksheet%22%3A%22Simples%20Interc%C3%A2mbio%20de%20Energia%20Barra%20Dia%22%2C%22dashboard%22%3A%22Painel%20Simples%20Interc%C3%A2mbio%20de%20Energia%22%2C%22storyboard%22%3A%22Hist%C3%B3rico%20Interc%C3%A2mbio%20de%20Energia%22%2C%22storyPointId%22%3A5%7D
+
+Both of these data files contain the data from 1/1/1999 to 6/25/2021. 
+
+The waterlevel is a number in meters.  However, the magnitudes of the values suggest that the values are altitude above sea level. This suggests that the best way to uses this data is as a measure of the change in water level, and not an absolute. 
+
+The energy exchange data has the following description from the ONS website translated via Google translate: 
+"1. The data come from the ONS Technical Database and are based on the measurement of power flow in boundary transmission lines between subsystems."
+
+This sounds like the energy exchange tracks energy that leaves or comes into the subsystem. The data is reported in GWh.  The data I pulled is for the southeast subsystem. I used both the liquid and physical exchange data. (Note: I think liquid may translate to something like "net"... in which case liquid energy exchange is net energy exchange)
+
+
+```{r}
+WLdata <- read.csv("Data/export_BarraBonita_Waterlevel_Data.csv")
+EEdata <- read.csv("Data/export_Southeast_Energy_Exchange_Data.csv")
+LEEdata <- read.csv("Data/export_Southeast_Liquid_Energy_Exchange.csv")
+
+```
+
+Each data set only has a few entries of interest. I am going to clean up each data set and write new csv file that I can share with the group. The water level data has two important columns: date, and water level. Additionally, the group only wants the date from 1/1/2016 to 12/31/2021. I also need to rename the columns. 
+
+```{r}
+new_WLdata <- WLdata %>% select(Data.Escala.de.Tempo.1.NM.Simp.4,Val.Nivelmontantecon)
+new_WLdata <- new_WLdata %>%  mutate(date = as.Date(WLdata$Data.Escala.de.Tempo.1.NM.Simp.4, format = '%m/%d/%Y'), waterlevel = new_WLdata$Val.Nivelmontantecon)
+new_WLdata <- new_WLdata %>%  select(date, waterlevel)
+
+```
+
+The energy exchange data also only has two columns of interest: date and energy exchanged. I will do similar manipulations to this data. 
+
+```{r}
+new_EEdata <- EEdata %>% select(Data.Escala.de.Tempo.1.IE.Simp.4, Selecione.Tipo.de.Intercambio.de.Energia.IE.Simp.4)
+new_EEdata <- new_EEdata %>% mutate(date = as.Date(EEdata$Data.Escala.de.Tempo.1.IE.Simp.4,format = '%m/%d/%Y'), physical_energy_exchange = Selecione.Tipo.de.Intercambio.de.Energia.IE.Simp.4)
+new_EEdata <- new_EEdata %>%  select('date','physical_energy_exchange')
+
+```
+
+Here is the liquid energy data:
+
+```{r}
+new_LEEdata <- LEEdata %>% select(Data.Escala.de.Tempo.1.IE.Simp.4, Selecione.Tipo.de.Intercambio.de.Energia.IE.Simp.4)
+new_LEEdata <- new_LEEdata %>% mutate(date = as.Date(LEEdata$Data.Escala.de.Tempo.1.IE.Simp.4,format = '%m/%d/%Y'), liquid_energy_exchange = Selecione.Tipo.de.Intercambio.de.Energia.IE.Simp.4)
+new_LEEdata <- new_LEEdata %>%  select('date','liquid_energy_exchange')
+
+
+```
+
+
+The next thing I need to do is trim of the unwanted rows. I also want to add the liquid energy exchange data to the energy excahgne data. The two data sets have different sizes so I will try to match them up 
+
+```{r}
+new_WLdata <- new_WLdata %>%  filter(date >= '2016-01-01', date <= '2020-12-31')
+head(new_WLdata)
+
+new_EEdata <- new_EEdata %>%  filter(date >= '2016-01-01', date <= '2020-12-31')
+
+
+new_LEEdata <- new_LEEdata %>%  filter(date >= '2016-01-01', date <= '2020-12-31')
+
+```
+
+```{r}
+new_CEEdata <- merge(new_EEdata, new_LEEdata)
+head(new_CEEdata)
+```
+
+Now I can write to a csv.
+
+
+```{r}
+write.csv( new_WLdata,file = "group_waterlevel_data.csv")
+write.csv( new_CEEdata,file = "group_energy_exchange_data.csv")
+```
+
+I have uploaded my data to the group git hub and it looks like everyone else has done the same. 
+The next task is to stitch together as much of the data as possible. 
+To this end, I have downloaded everyone's csv files and am going to stitch together all data that comes on a daily time scale.
+
+
+The Barra Bonita data is in these files: Effluent_Flow, Influent_Flow, Percent_Vol_Used, Poured_Flow, Turbine_Flow, group_waterlevel_data, nrg_generated
+
+The other data is in these files: Stored_Energy, group_energy_exchange_data, Affluent_Natural_Energy_SE:Mid, Maximum_Demand, energy_charge, Affluent_Natural_Energy_TieteBasin
+
+note that nrg_generated had an extra entry for what I think is the sum accross the data set. I deleted it in my own saved version of the file. 
+
+```{r}
+#barra bonita data
+data1 <- read.csv("ima2021_project-main/Data/Effluent_Flow.csv")
+data2 <- read.csv("ima2021_project-main/Data/Influent_Flow.csv")
+data3 <- read.csv("ima2021_project-main/Data/Percent_Vol_Used.csv")
+data4 <- read.csv("ima2021_project-main/Data/Poured_Flow.csv")
+data5 <- read.csv("ima2021_project-main/Data/Turbine_Flow.csv")
+data6 <- read.csv("ima2021_project-main/Data/group_waterlevel_data.csv")
+data7 <- read.csv("ima2021_project-main/Data/nrg_generated.csv")
+
+# Other data
+data8 <- read.csv("ima2021_project-main 2/Data/Stored_Energy.csv")
+data9 <- read.csv("ima2021_project-main 2/Data/group_energy_exchange_data.csv")
+data10 <- read.csv("ima2021_project-main 2/Data/Affluent_Natural_Energy_SE:MidW.csv")
+data11 <- read.csv("ima2021_project-main 2/Data/Maximum_Demand.csv")
+data12 <- read.csv("ima2021_project-main 2/Data/export_energy_charge.csv")
+data13 <- read.csv("ima2021_project-main 2/Data/Affluent_Natural_Energy_TieteBasin.csv")
+
+frames <- list(data1,data2,data3,data4,data5,data6,data7,data8,data9,data10,data11,data12,data13)
+
+for (df in frames){
+  print(head(df))
+}
+
+```
+All the date formats are slightly different. 1, 2, 3, 4, 5, 7, 8, are MM/DD/YYYY while 12 is in D-MMM-YY and 10,11,13 are MM/DD/YY. Another thing I learned is that strings need to be reset to the Date format even if it looks like the string is already in it. This will have to be documented in the read me.
+
+```{r}
+for (i in list(1, 2, 3, 4, 5, 7, 8)){
+  frames[[i]] <- frames[[i]] %>% mutate(date = as.Date(frames[[i]]$Date, format = "%m/%d/%Y"))
+  frames[[i]] <- frames[[i]] %>% select(-'Date')
+}
+
+for (i in list(10,11,13)){
+  frames[[i]] <- frames[[i]] %>% mutate(date = as.Date(frames[[i]]$Date, format = "%m/%d/%y")) 
+  frames[[i]] <- frames[[i]] %>%  select(-'Date')
+}
+
+for (i in 12){
+  frames[[i]] <- frames[[i]] %>% mutate(date = as.Date(frames[[i]]$date))
+}
+
+for (i in list(6,9)){
+  frames[[i]] <- frames[[i]] %>% mutate(date = as.Date(frames[[i]]$date))
+  frames[[i]] <- frames[[i]] %>%  select(-'X')
+}
+
+
+```
+I need to slice all the date frames down to the 5 year window we care about.
+
+```{r}
+for (i in list(1,2,3,4,5,6,7,8,9,10,11,12,13)){
+  frames[[i]] <- frames[[i]] %>%  filter(date >= '2016-01-01', date <= '2020-12-31')
+}
+```
+
+All the date columns share the same format now. The next step is to all these data frames together.
+
+```{r}
+daily <- frames[[13]]
+for (i in list(1,2,3,4,5,6,7,8,9,10,11,12)){
+  daily <- merge(daily, arrange(frames[[i]], date), by=c('date'))
+}
+daily %>%  head()
+```
+
+
+It would be nice to have clean column names, so I will change column names before writing the DF to a csv.
+
+```{r}
+colnames(daily)<- c('date','affluent_natural_energy_southeast','effluent_flow','influent_flow','volume_used','poured_flow','turbine_flow','water_level','energy_generated','energy_stored','physical_energy_exchange','liquid_energy_exchange','affluent_natural_energy_tiete_basin','maximum_demand','energy_charge')
+head(daily)
+```
+
+```{r}
+write.csv(daily,file = "aggragate_daily_data.csv")
+
+```
+
+
+**Some Plots**
+
+Now we can focus on doing some data analysis. This next block will extract year month and day from the date string so that I can make comparitive plots.
+
+```{r}
+library(lubridate)
+
+daily <-daily %>%  mutate(year =  year(ymd(daily$date)), month = month(ymd(daily$date)), day =day(ymd(daily$date)))
+
+```
+The first reasonable thing to do is to look at what energy generation and turbine flow look like over time. These two things should be directly correlated since the energy is generated by the flow through the turbine. 
+
+```{r}
+daily %>%  ggplot(aes(x=date,y=energy_generated)) + geom_line()
+daily %>% ggplot(aes(x=date,y=turbine_flow)) + geom_line()
+```
+
+
+Just to confirm this relationship, I have plotted a zoomed in version of energy generated vs turbine flow below.
+
+```{r}
+daily %>%  filter(year == 2018,month == 12) %>% ggplot(aes( x = date)) + geom_line(aes(y = (energy_generated-min(energy_generated))+2, color =  'energy_generated')) + geom_line(aes(y =(turbine_flow-min(turbine_flow))/400, color = 'turbine_flow'))
+```
+
+The next plot compares water level with "net flow = cumsum(influent_flow - effluent_flow)/5000". The normalization of /5000 is arbitrary and done to bring it down to scale with water level. Influent flow is supposed to be the water flow recieved by the dam while effluent flow is water that flows away from the damn (I didnt know this when I made the plot). I was thinking that the cumulative sum of flow would keep track of the water level in the resivior. However, I think it is more likely that water level influence the cumulative flow through the dam... happy accident. (Note: water level is normalized against its minimum.)
+
+
+```{r}
+daily %>% ggplot(aes( x = date)) + geom_line(aes(y = (water_level-min(water_level)), color =  'water_level')) + geom_line(aes(y =cumsum(influent_flow - effluent_flow)/5000, color = 'net_flow'))
+```
+
+My current understanding suggests that there are the following factors at play: 
+
+-down stream river flow must be maintained (we don't want to let the river below the dam run dry)
+-there is a maximum turbine capacity for water
+-the reservoir levels need to be maintained to allow for addition water capture
+
+This suggests that more energy could be produced any time turbine flow is not at capacity and poured flow is positive. Essentially, the dam is going to pour water for some reason (water level or downstream flow). If the turbine is not at capacity, then any poured water could be diverted into the turbine "for free". 
+
+The chart below shows that poured flow is a fraction of the excess turbine capacity most of the time. There are some spikes of poured flow that shoot way over the turbine capacity.
+
+I think we should focus on predicting poured_flow or poured_flow - turbine_capacity". Relevant variables could be water level, and month (as a proxy for expected rainfall). 
+
+There are some clusters of times in 2016 when turbine capacity was 0 and poured flow spiked. Not sure what to think about those but there was a confluence of high demand and high water levels. However, it could be that if a dam has high water levels that more of the power grid demand gets satisfied by that power plant. Essentially, if a reservoir has a lot of water, it will be used instead of poured where possible. 
+
+Note for the second plot that the maximum turbine flow recorded in the data set is 751 m^3/s.
+
+New Idea: Fast change in water level is going to lead pour. Low derivative could mean passing water down stream. 
+
+Note from Ivan: A pure time series method is not going to work well because that is analogous to predicting the weather. A likely better approach is to use the "recent history" of water levels as a proxy of rain levels to predict whether we are at a high or low risk of wasteful poured flow. IE don't use just X's history to predict future X; use the history of Y to predict the future of X. 
+
+```{r}
+daily %>% ggplot(aes(x = date)) + geom_line(aes(y = max(turbine_flow)-turbine_flow, color = 'turbine capacity')) +  geom_line(aes(y = poured_flow, color = "poured flow"))
+
+daily %>% filter(poured_flow >= 700) %>%  ggplot(aes(x = date)) + geom_point(aes(y = max(turbine_flow)-turbine_flow, color = 'turbine capacity')) + geom_point(aes(y = turbine_flow, color = "turbine flow"))
+
+daily %>% ggplot(aes(x = date)) + geom_line(aes(y = influent_flow, color = 'influent flow')) +  geom_line(aes(y = poured_flow, color = "poured flow"))
+
+daily %>% filter(poured_flow <= 500) %>% ggplot(aes(x = date)) + geom_point(aes(y = poured_flow/median(turbine_flow), color = "poured flow/max(turbine flow)"))
+
+daily %>% filter(poured_flow <= 500, poured_flow > 1) %>% ggplot(aes(x = date)) + geom_point(aes(y = poured_flow, color = "poured flow")) + geom_point(aes(y = (water_level- min(water_level))*100, color = "water level")) + geom_point(aes(y = max(turbine_flow)-turbine_flow, color = 'excess turbine capacity')) 
+```
+```{r}
+daily %>% ggplot(aes(x = date, y = turbine_flow)) + geom_line(aes(color = "turbine flow"))
+```
+
+```{r}
+daily %>% ggplot(aes(x=date, y = energy_stored)) + geom_line(aes(color = "energy stored in SeCw region"))
+```
+```{r}
+daily %>% ggplot(aes(x=date)) + geom_line(aes(y=effluent_flow,color = 'effluent flow')) + geom_line(aes(y=poured_flow, color = 'poured flow'))
+```
+
+
+```{r}
+daily %>% filter(poured_flow <= 50) %>% ggplot(aes(x = poured_flow)) +  geom_density()
+```
+
+
+```{r}
+daily %>%  group_by(month) %>%  summarize(mean(poured_flow))
+daily %>%  filter(poured_flow<=700) %>% group_by(month) %>%  summarize(mean(poured_flow))
+
+```
+
+**Basic Models**
+
+At this point I think I have enough intuition to build some basic models for the data. The first idea should be just to use reservoir levels to predict energy generation. This should be straightforward. 
+
+```{r}
+model_1 <- lm(turbine_flow ~ water_level, daily)
+summary(model_1)
+
+ggplot(daily, aes(y = turbine_flow, x = water_level)) + 
+    geom_point() + 
+    stat_smooth(method="lm", se=FALSE)
+```
+
+```{r}
+ggplot(daily, aes(y = turbine_flow, x = water_level)) + geom_point(aes(color = month)) 
+```
+
+```{r}
+model_2 <- lm(turbine_flow ~ water_level + month, daily)
+summary(model_2)
+
+ggplot(daily, aes(y = month, x = water_level, color = turbine_flow)) + 
+    geom_point(alpha = .5) 
+```

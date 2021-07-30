@@ -1,0 +1,546 @@
+---
+title: "Exploratory Plots"
+output: html_document
+---
+
+```{r warning = FALSE, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(lubridate)
+```
+
+
+```{r}
+daily <- read.csv('aggragate_daily_data_2000to2020.csv')
+daily <- daily %>% mutate(date = as.Date(daily$date)) %>% select(-'X')
+daily <- daily %>%  mutate(year =  year(ymd(daily$date)), month = month(ymd(daily$date)), day =day(ymd(daily$date)))
+daily %>%  head()
+```
+```{r}
+model_1 <- lm(energy_generated ~ water_level + month, daily)
+summary(model_1)
+```
+
+```{r}
+library(plotly)
+plot_ly(x=daily$water_level, y=daily$month, z=daily$energy_generated, type="scatter3d", mode="markers", color = daily$month)
+```
+
+
+```{r}
+model_2<- lm(poured_flow ~  lag(water_level,14) +  lag(water_level,15), daily)
+summary(model_2)
+```
+
+```{r}
+library(plotly)
+plot_ly(x=lag(daily$water_level,14), y=lag(daily$water_level,15), z=daily$poured_flow, type="scatter3d", mode="markers", color = lag(daily$poured_flow,2))
+```
+
+```{r}
+model_3<- lm(poured_flow ~  lag(water_level,14) +  lag(poured_flow,2), daily)
+summary(model_3)
+```
+
+The plot below shows that even with a 30 day lag on water level, there is almost no poured flow if the water level is at or below 446. With a 14 day lag, the 447 mark seems like a cutoff.
+```{r}
+plot_ly(x=lag(daily$water_level,14), y=lag(daily$water_level,30), z=daily$poured_flow, type="scatter3d", mode="markers", color = lag(daily$influent_flow,2))
+
+daily %>%  ggplot(aes(x = water_level, y = poured_flow, color = influent_flow < 930.88)) + geom_point()
+```
+
+Here I compare two models: one with the 14 day waterlevel lag, and one that cuts off all the days with low water levels.
+```{r}
+model_4<- lm(poured_flow ~  lag(water_level,14) +  lag(influent_flow,2), daily)
+summary(model_4)
+```
+```{r}
+model_6<- lm(poured_flow ~ lag(influent_flow,2), filter(daily, lag(water_level,14) >446))
+summary(model_6)
+for (i in list(1,2,3,4,5,6,7,8,9,10,11,12)){
+  print(daily %>% filter(lag(water_level,14)>446, month ==i)  %>% ggplot( aes(y = poured_flow, x=lag(influent_flow,2),color=month)) + 
+    geom_point() + 
+    stat_smooth(method="lm", se=FALSE))
+}
+
+```
+The plots above make me thing that poured flow is always kinda sporadic. In any given month there can be some poured flow. However, in some months the purpose of poured flow is not to drain the reservoir: see months 7,8,10,11.
+
+```{r}
+plot_ly(x=lag(daily$influent_flow,2), y=lag(daily$energy_generated,2), z=daily$poured_flow, type="scatter3d", mode="markers",color = daily$water_level)
+```
+
+
+```{r}
+model_5<- lm(poured_flow ~  lag(influent_flow,2) + lag(energy_generated,2), daily)
+summary(model_5)
+```
+
+I wonder how good the dam operators are at predicting future influent flow. How often are they proactively draining the reservoir? Next I am going to see if future influent flow is a good predictor of todays poured flow... A two day lead seems to do as well as a 2 day lag. It could just be that poured flow is a real time decision: ie overfull dams are automatically drained. 
+
+```{r}
+model_7<- lm(poured_flow ~lead(influent_flow,2), daily)
+summary(model_7)
+
+daily %>%  ggplot( aes(y = poured_flow, x=lead(influent_flow,2),color=month)) + 
+    geom_point() + 
+    stat_smooth(method="lm", se=FALSE)
+```
+```{r}
+daily %>% filter(water_level >450) %>% ggplot(aes(x= date, y = poured_flow, color = influent_flow)) + geom_point()
+df <- daily %>% filter(water_level>450)
+plot_ly(x=df$influent_flow, y=df$water_level, z=df$month, type="scatter3d", mode="markers",color = df$poured_flow)
+```
+
+It's time to try a decision tree. I'm not entirely sure what we will get out of it, but at least for poured flow, cutting the data set will be good.
+
+```{r}
+library(party)
+
+png(file = "decision_tree2.png", res=300, height=8, width=14, units="in")
+
+tree1 <- ctree( energy_generated ~ water_level + influent_flow + month,daily, controls = ctree_control(maxdepth = 3))
+
+plot(tree1)
+```
+
+**Incorperating Weather Data** 
+
+```{r}
+weather <- read.csv('aggregate_weather_data.csv')
+weather <- weather %>% mutate(date = as.Date(weather$date)) %>% select(-'X')
+
+weather[weather == Inf | weather == -Inf] <- NA
+
+weather %>%  head()
+
+```
+
+```{r}
+df <- merge(weather,daily,by = c('date'))
+head(df)
+```
+
+```{r}
+df %>%  ggplot(aes(x=lag(rain_mm_barra_bonita,3), y=influent_flow)) + geom_point(aes(color = month))
+```
+
+```{r}
+model_bb <- lm(influent_flow ~ lag(rain_mm_barra_bonita, 0) + lag(rain_mm_barra_bonita, 1)+lag(rain_mm_barra_bonita, 2)+lag(rain_mm_barra_bonita, 3)+lag(rain_mm_barra_bonita, 4)+lag(rain_mm_barra_bonita, 5)+lag(rain_mm_barra_bonita, 6)+lag(rain_mm_barra_bonita, 7)+lag(rain_mm_barra_bonita, 8)+lag(rain_mm_barra_bonita, 9)+lag(rain_mm_barra_bonita, 10)+lag(rain_mm_barra_bonita,11)+lag(rain_mm_barra_bonita, 12), data = df) 
+
+summary(model_bb)
+
+```
+
+```{r}
+df <- df %>% mutate(prediction = predict(model_bb,df))
+
+plot_ly(x=df$prediction, y=df$influent_flow, type="scatter", mode="markers",color = (df$influent_flow - df$prediction))
+```
+
+```{r}
+df %>%  ggplot( aes(y = influent_flow, x=lag(rain_mm_ibitinga,0),color=month)) + 
+    geom_point() + 
+    stat_smooth(method="lm", se=FALSE)
+df %>%  ggplot( aes(y = influent_flow, x=lag(rain_mm_ibitinga,3),color=month)) + 
+    geom_point() + 
+    stat_smooth(method="lm", se=FALSE)
+
+plot_ly(x=lag(df$rain_mm_ibitinga, 3), y=lag(df$rain_mm_ibitinga,2), z=df$influent_flow, type="scatter3d", mode="markers",color = lag(df$water_level,1))
+```
+
+
+```{r}
+model_8 <- lm(influent_flow ~ lag(rain_mm_ibitinga, 0) + lag(rain_mm_ibitinga, 1)+lag(rain_mm_ibitinga, 2)+lag(rain_mm_ibitinga, 3)+lag(rain_mm_ibitinga, 4)+lag(rain_mm_ibitinga, 5)+lag(rain_mm_ibitinga, 6)+lag(rain_mm_ibitinga, 7)+lag(rain_mm_ibitinga, 8)+lag(rain_mm_ibitinga, 9)+lag(rain_mm_ibitinga, 10)+lag(rain_mm_ibitinga,11)+lag(rain_mm_ibitinga, 12), data = df)
+
+summary(model_8)
+
+```
+
+
+**Sao Paulo Weather**
+
+We got weather for Sao Paulo, which is upstream from Barra Bonita. My hope is that it will have more predictive power than the weather data we have used so far. However, Sao Paulo may be on the wrong side of the mountains for it to affect BB. This is going to contain the average of all the Sao Paulo stations 
+
+
+
+```{r}
+SaoPaulo <- read.csv('Daily_Weather_SaoPaulo.csv')
+SaoPaulo <- SaoPaulo %>% mutate(date = as.Date(SaoPaulo$date)) %>%  select(date,rain_mm,temp_max,temp_min)
+SaoPaulo<- SaoPaulo %>% group_by(date) %>% summarize(mean(rain_mm, na.rm = TRUE), max(temp_max, na.rm = TRUE), min(temp_min, na.rm = TRUE))
+head(SaoPaulo %>% arrange(date))
+colnames(SaoPaulo) <- c('date','rain_mm_sao_paulo','temp_max_sao_paulo','temp_min_sao_paulo')
+head(SaoPaulo %>% arrange(date))
+
+```
+
+```{r}
+
+df <- merge(weather,daily,by = c('date'))
+head(df)
+df <- merge(x = df, y = SaoPaulo, by = c('date'), all.x =TRUE, all.y = TRUE)
+head(df)
+```
+```{r}
+plot_ly(x=lag(df$rain_mm_sao_paulo, 35), y=lag(df$rain_mm_sao_paulo, 60), z=df$influent_flow, type="scatter3d", mode="markers",color = lag(df$water_level,1))
+
+model9 <- lm(influent_flow ~ lag(rain_mm_sao_paulo,35) + water_level, data = df)
+summary(model9)
+```
+
+
+
+
+**Sao Paulo Average** 
+
+
+```{r}
+model_8 <- lm(influent_flow ~ lag(rain_mm_sao_paulo, 0) + lag(rain_mm_sao_paulo, 1)+lag(rain_mm_sao_paulo, 2)+lag(rain_mm_sao_paulo, 3)+lag(rain_mm_sao_paulo, 4)+lag(rain_mm_sao_paulo, 5)+lag(rain_mm_sao_paulo, 6)+lag(rain_mm_sao_paulo, 7)+lag(rain_mm_sao_paulo, 8)+lag(rain_mm_sao_paulo, 9)+lag(rain_mm_sao_paulo, 10)+lag(rain_mm_sao_paulo,11)+lag(rain_mm_sao_paulo, 12) + lag(rain_mm_sao_paulo, 13) +lag(rain_mm_sao_paulo, 14) +lag(water_level,7)+ ((month-1)%%12), data = df)
+summary(model_8)
+
+```
+
+
+```{r}
+df <- df %>% mutate(prediction = predict(model_8,df))
+```
+```{r}
+plot_ly(x=df$prediction, y=df$influent_flow, type="scatter", mode="markers",color =(df$influent_flow - df$prediction))
+plot_ly(x=df$prediction, y=df$influent_flow, type="scatter", mode="markers",color =df$month)
+
+#(df$influent_flow - df$prediction)
+
+df %>%  ggplot( aes(y = influent_flow, x=prediction,color=influent_flow-prediction)) + 
+    geom_point() + 
+    stat_smooth(method="lm", se=FALSE)
+```
+
+Here is the mean absolute error of the model with 14 days of lagged rain information. 
+```{r}
+mean(abs(df$influent_flow-df$prediction),na.rm = TRUE)
+
+```
+
+
+
+I want to pull out months 1 and 12 to do them seperately. 
+```{r warning = FALSE}
+
+df2 <-  df %>% filter(month == 1 | month == 12)
+model_12 <- lm(influent_flow ~ lag(rain_mm_sao_paulo, 0) + lag(rain_mm_sao_paulo, 1)+lag(rain_mm_sao_paulo, 2)+lag(rain_mm_sao_paulo, 3)+lag(rain_mm_sao_paulo, 4)+lag(rain_mm_sao_paulo, 5)+lag(rain_mm_sao_paulo, 6)+lag(rain_mm_sao_paulo, 7)+lag(rain_mm_sao_paulo, 8)+lag(rain_mm_sao_paulo, 9)+lag(rain_mm_sao_paulo, 10)+lag(rain_mm_sao_paulo,11)+lag(rain_mm_sao_paulo, 12) + lag(rain_mm_sao_paulo, 13) +lag(rain_mm_sao_paulo, 14) +lag(water_level,7)+ ((month-4)%%12), data = df2)
+
+
+```
+
+
+```{r}
+df2 <- df2%>% mutate(prediction = predict(model_12,df2))
+```
+```{r}
+plot_ly(x=df2$prediction, y=df2$influent_flow, type="scatter", mode="markers",color =(df2$influent_flow - df2$prediction))
+plot_ly(x=df2$prediction, y=df2$influent_flow, type="scatter", mode="markers",color =df2$month)
+
+#(df$influent_flow - df$prediction)
+
+df2 %>%  ggplot( aes(y = influent_flow, x=prediction,color=influent_flow-prediction)) + 
+    geom_point() + 
+    stat_smooth(method="lm", se=FALSE)
+```
+
+**Fitting an exponential**
+
+This doesn't really seem like its working! Wait things started working once I included logs in the print outs.
+
+```{r warning = FALSE}
+model_11 <- lm(log(influent_flow) ~ lag(rain_mm_sao_paulo, 0) + lag(rain_mm_sao_paulo, 1)+lag(rain_mm_sao_paulo, 2)+lag(rain_mm_sao_paulo, 3)+lag(rain_mm_sao_paulo, 4)+lag(rain_mm_sao_paulo, 5)+lag(rain_mm_sao_paulo, 6)+lag(rain_mm_sao_paulo, 7)+lag(rain_mm_sao_paulo, 8)+lag(rain_mm_sao_paulo, 9)+lag(rain_mm_sao_paulo, 10)+lag(rain_mm_sao_paulo,11)+lag(rain_mm_sao_paulo, 12) + lag(rain_mm_sao_paulo, 13) +lag(rain_mm_sao_paulo, 14) +lag(water_level,7)+ factor((month-1)%%12), data = df)
+summary(model_11)
+
+```
+```{r}
+df <- df %>% mutate(prediction = predict(model_11,df))
+```
+```{r}
+plot_ly(x=df$prediction, y=log(df$influent_flow), type="scatter", mode="markers",color =(log(df$influent_flow) - df$prediction))
+plot_ly(x=exp(df$prediction), y=(df$influent_flow), type="scatter", mode="markers",color =((df$influent_flow) - exp(df$prediction)))
+plot_ly(x=df$prediction, y=log(df$influent_flow), type="scatter", mode="markers",color =df$month)
+
+#(df$influent_flow - df$prediction)
+
+df %>%  ggplot( aes(y = log(influent_flow), x=prediction,color=log(influent_flow)-prediction)) + 
+    geom_point() + 
+    stat_smooth(method="lm", se=FALSE)
+df %>%  ggplot( aes(y = log(influent_flow)-prediction, x=prediction,color=log(influent_flow)-prediction)) + 
+    geom_point() + 
+    stat_smooth(method="lm", se=FALSE)
+```
+
+```{r}
+mean(abs((df$influent_flow)-exp(df$prediction)),na.rm = TRUE)
+```
+
+I don't really understand why influent flow is exponential in the historic rainfall, but it seems to be working. I think it may not really be exponential but that each additional mm of rain moves faster into the reservoir and therefore derivative of influent flow is increasing in rainfall. 
+
+I should double check this model by actually using a test set, or cross validation techniques. The best way to make the test set is to add columns to a data frame that has he historic rainfall. This will let me do a random sampling for the test and train data. 
+
+```{r}
+library(tidyr)
+```
+
+
+```{r}
+df <- df %>% select(date,influent_flow,rain_mm_sao_paulo,water_level,month) %>% mutate(lag_1 = lag(rain_mm_sao_paulo, 1), lag_2 = lag(rain_mm_sao_paulo, 2), lag_3 = lag(rain_mm_sao_paulo, 3), lag_4 = lag(rain_mm_sao_paulo, 4), lag_5 = lag(rain_mm_sao_paulo, 5), lag_6 = lag(rain_mm_sao_paulo, 6), lag_7 = lag(rain_mm_sao_paulo, 7), lag_8 = lag(rain_mm_sao_paulo, 8), lag_9 = lag(rain_mm_sao_paulo, 9), lag_10 = lag(rain_mm_sao_paulo, 10), lag_11 = lag(rain_mm_sao_paulo,11), lag_12 = lag(rain_mm_sao_paulo, 12), lag_13 = lag(rain_mm_sao_paulo, 13), lag_14 = lag(rain_mm_sao_paulo, 14), lag_water = lag(water_level,7)) %>% drop_na()
+df3 <- df %>% filter(date <= "2019-01-01")
+head(df3)
+```
+
+```{r}
+library(caret)
+```
+
+```{r}
+    model_cv_1 <- train(
+    log(influent_flow) ~ rain_mm_sao_paulo + lag_1+lag_2+lag_3+lag_4+lag_5+lag_6+lag_7+lag_8+lag_9+lag_10+lag_11+lag_12+ lag_13 +lag_14 +lag_water+ factor((month-1)%%12),
+    data = df3,
+    method = "lm",
+    trControl = trainControl(method = "cv", number = 10 )
+    , na.action = na.omit
+    )
+
+```
+
+```{r}
+summary(model_cv_1)
+```
+```{r}
+df3 <- df %>% filter(date >= "2019-01-01")  %>% mutate(prediction = predict(model_cv_1,filter(df,date >= "2019-01-01")))
+plot_ly(x=(df3$prediction), y=log(df3$influent_flow), type="scatter", mode="markers",color =(log(df3$influent_flow) - (df3$prediction)))
+plot_ly(x=exp(df3$prediction), y=(df3$influent_flow), type="scatter", mode="markers",color =((df3$influent_flow) - exp(df3$prediction)))
+df3 %>%  ggplot(aes(x=date)) + geom_line(aes(y = influent_flow, color = 'actual')) + geom_line(aes(y = exp(prediction), color = 'predicted'))
+```
+
+
+
+```{r}
+mean(abs((df3$influent_flow)-exp(df3$prediction)),na.rm = TRUE)
+model_cv_1$results
+```
+```{r}
+df %>% filter(date >= "2009-01-01", date <= "2019-01-01") %>% ggplot(aes(x=date, y= influent_flow)) + geom_line()
+```
+
+
+**Increasing the time horizon**
+
+```{r}
+i <- 40#this is the time horizon 
+
+df4 <- df %>% select(date,influent_flow,rain_mm_sao_paulo,water_level,month,day,year) %>% mutate(lag_1 = lag(rain_mm_sao_paulo, 0+i), lag_2 = lag(rain_mm_sao_paulo, 1+i), lag_3 = lag(rain_mm_sao_paulo, 2+i), lag_4 = lag(rain_mm_sao_paulo, 3+i), lag_5 = lag(rain_mm_sao_paulo, 4+i), lag_6 = lag(rain_mm_sao_paulo, 5+i), lag_7 = lag(rain_mm_sao_paulo, 6+i), lag_8 = lag(rain_mm_sao_paulo, 7+i), lag_9 = lag(rain_mm_sao_paulo, 8+i), lag_10 = lag(rain_mm_sao_paulo, 9+i), lag_11 = lag(rain_mm_sao_paulo,10+i), lag_12 = lag(rain_mm_sao_paulo, 11+i), lag_13 = lag(rain_mm_sao_paulo, 12+i), lag_14 = lag(rain_mm_sao_paulo, 13+i), lag_water = lag(water_level,14+i)) %>% drop_na()
+
+```
+
+```{r}
+    model_cv_2 <- train(
+    log(influent_flow) ~  lag_1+lag_2+lag_3+lag_4+lag_5+lag_6+lag_7+lag_8+lag_9+lag_10+lag_11+lag_12+ lag_13 +lag_14 +lag_water+ factor(month),
+    data = df4,
+    method = "lm",
+    trControl = trainControl(method = "cv", number = 10 )
+    , na.action = na.omit
+    )
+
+```
+
+```{r}
+summary(model_cv_2)
+```
+```{r}
+df4 <- df4 %>% mutate(prediction = predict(model_cv_2,df4))
+plot_ly(x=(df4$prediction), y=log(df4$influent_flow), type="scatter", mode="markers",color =(log(df4$influent_flow) - (df4$prediction)))
+plot_ly(x=exp(df4$prediction), y=(df4$influent_flow), type="scatter", mode="markers",color = df4$year )
+
+```
+
+```{r}
+mean(abs((df4$influent_flow)-exp(df4$prediction)),na.rm = TRUE)
+```
+
+Hmmmm... there seems to be a systematic under prediction. I want to run a logit model that will predict whether or not influent flow will be poorly predicted. This should help me figure out which other variables to consider as factors. Note... the plot looked better for factor(year) instead of factor(month), and the MAE was basically the same. 
+MAE around 160 seems good... but it also looks like what a random guess produces?
+
+
+**Lasso to select weather stations**
+
+The weather I have used up until this point is an average across the whole state of Sao Paulo. However, it is likely that some stations are better predictors for BB than others. I will use a Lasso linear model to pick the good weather stations. Unfortunately, I dont think I have enough data do look at higher degree models, or to use lots of lag in the prediction. However, this should only favor stations that are closer to the reservoir which should be fine. 
+
+```{r}
+lasso_df<- read.csv('Daily_Weather_SaoPaulo.csv')
+```
+```{r}
+ lasso_df <- lasso_df %>% mutate(date = as.Date(lasso_df$date)) %>%  select(date,rain_mm,station)
+```
+```{r}
+library(stringr)
+```
+
+```{r}
+i <- 1#this is the time horizon 
+
+#lasso_df <- lasso_df %>% mutate(lag_1 = lag(rain_mm, 0+i), lag_2 = lag(rain_mm, 1+i), lag_3 = lag(rain_mm, 2+i), lag_4 = lag(rain_mm, 3+i), lag_5 = lag(rain_mm, 4+i), lag_6 = lag(rain_mm, 5+i), lag_7 = lag(rain_mm, 6+i), lag_8 = lag(rain_mm, 7+i), lag_9 = lag(rain_mm, 8+i), lag_10 = lag(rain_mm, 9+i), lag_11 = lag(rain_mm,10+i), lag_12 = lag(rain_mm, 11+i), lag_13 = lag(rain_mm, 12+i), lag_14 = lag(rain_mm, 13+i)) %>% drop_na()
+
+lasso_df<- lasso_df %>% mutate(station = str_split(station,pattern = ' ',simplify = TRUE)[,1])
+
+```
+
+```{r}
+
+
+ted <-  merge(select(filter(lasso_df,station == 'A701'),-station),select(filter(lasso_df,station == 'A701'),-station),by = c('date'), all.x=TRUE, all.y=TRUE, suffixes = c('NA',str_glue('_','A701'))) %>% select(-rain_mmNA)#-lag_1NA,-lag_2NA,-lag_3NA,-lag_4NA,-lag_5NA,-lag_6NA,-lag_7NA,-lag_8NA,-lag_9NA,-lag_10NA,-lag_11NA,-lag_12NA,-lag_13NA,-lag_14NA)
+head(ted)
+```
+```{r}
+thing<-lasso_df %>% select(station) %>% unique() 
+for (i in thing$station[0:-1]){
+  nexxt <- merge(select(filter(lasso_df,station == i),-station),select(filter(lasso_df,station == i),-station),by = c('date'), all.x=TRUE, all.y=TRUE, suffixes = c('NA',str_glue('_',i))) %>% select(-rain_mmNA)#,-lag_1NA,-lag_2NA,-lag_3NA,-lag_4NA,-lag_5NA,-lag_6NA,-lag_7NA,-lag_8NA,-lag_9NA,-lag_10NA,-lag_11NA,-lag_12NA,-lag_13NA,-lag_14NA)
+  ted <- merge(ted,nexxt,by=c('date'),all.x = TRUE, all.y = TRUE)
+}
+
+```
+```{r}
+ted[is.na(ted)]<-0
+nexxt <- df %>% select(date,influent_flow)
+ted <- merge(nexxt,ted,by=c('date'),all.x=TRUE)
+```
+
+```{r}
+
+nuts <- train(log(influent_flow) ~.,data=select(ted,-date),method = 'glmnet',  trControl = trainControl(method = "cv", number = 10),
+  metric = "MAE",na.action = na.omit)
+
+best_lambda <- nuts$lambda.min
+nuts$index
+```
+```{r}
+coef(nuts$finalModel,best_lambda)[,17]>0
+```
+```{r}
+ted <- ted %>% mutate(prediction = predict(nuts,ted))
+plot_ly(x=(ted$prediction), y=log(ted$influent_flow), type="scatter", mode="markers",color =(log(ted$influent_flow) - (ted$prediction)))
+plot_ly(x=exp(ted$prediction), y=(ted$influent_flow), type="scatter", mode="markers",color =((ted$influent_flow) - exp(ted$prediction)))
+```
+
+
+```{r}
+mean(abs((ted$influent_flow)-exp(ted$prediction)),na.rm = TRUE)
+```
+
+
+**Using refined weather stations**
+
+Now that we have selected good weather stations, these need to be incorporated into the previous model where I used the average weather for the whole of Sao Paulo. The good stations are c(A701, A706, A708, A711, A712, A726, A729, A740, A741). First, I need to get the correct averge for these stations. Then I can repeat the lagged log linear model again.
+
+
+```{r}
+weather_new <- read.csv('Daily_Weather_SaoPaulo.csv')
+weather_new <- weather_new %>% mutate(date = as.Date(lasso_df$date)) %>%  select(date,rain_mm,station)
+weather_new <- weather_new %>% mutate(station = str_split(station,pattern = ' ',simplify = TRUE)[,1])
+
+weather_new <- weather_new %>% filter( station == 'A701'|
+                                         station =='A706'|
+                                         station == 'A708'|
+                                         station == 'A711'|
+                                         station == 'A712'|
+                                         station == 'A726'|
+                                         #station == 'A729'|
+                                         station == 'A740'|
+                                         station == 'A741')
+
+weather_new <- weather_new %>% group_by(date) %>% summarize(mean(rain_mm,na.rm = TRUE))
+colnames(weather_new) <- c('date','rain_mm')
+df5 <- merge(x = daily, y = weather_new, by = c('date'), all.x =TRUE, all.y = TRUE)
+
+i<-0
+
+df5 <- df5 %>% select(date,influent_flow,rain_mm,water_level,month) %>% mutate(lag_1 = lag(rain_mm, 0+i), lag_2 = lag(rain_mm, 1+i), lag_3 = lag(rain_mm, 2+i), lag_4 = lag(rain_mm, 3+i), lag_5 = lag(rain_mm, 4+i), lag_6 = lag(rain_mm, 5+i), lag_7 = lag(rain_mm, 6+i), lag_8 = lag(rain_mm, 7+i), lag_9 = lag(rain_mm, 8+i), lag_10 = lag(rain_mm, 9+i), lag_11 = lag(rain_mm,10+i), lag_12 = lag(rain_mm, 11+i), lag_13 = lag(rain_mm, 12+i), lag_14 = lag(rain_mm, 13+i), lag_water = lag(water_level,i)) %>% drop_na()
+
+```
+```{r}
+    model_cv_3 <- train(
+    log(influent_flow) ~  lag_1+lag_2+lag_3+lag_4+lag_5+lag_6+lag_7+lag_8+lag_9+lag_10+lag_11+lag_12+ lag_13 +lag_14 +lag_water+ factor(month),
+    data = df5,
+    method = "lm",
+    trControl = trainControl(method = "cv", number = 10 )
+    , na.action = na.omit
+    )
+
+```
+
+```{r}
+summary(model_cv_3)
+```
+
+```{r}
+df5 <- df5 %>% mutate(prediction = predict(model_cv_3,df5))
+plot_ly(x=(df5$prediction), y=log(df5$influent_flow), type="scatter", mode="markers",color =(log(df5$influent_flow) - (df5$prediction)))
+plot_ly(x=exp(df5$prediction), y=(df5$influent_flow), type="scatter", mode="markers",color =((df5$influent_flow) - exp(df5$prediction)))
+
+df5 %>%  ggplot(aes(x=date)) + geom_line(aes(y = influent_flow, color = 'actual')) + geom_line(aes(y = exp(prediction), color = 'predicted'))
+```
+```{r}
+mean(abs((df5$influent_flow)-exp(df5$prediction)),na.rm = TRUE)
+```
+
+--------------------------------------------------------------------------------------------------------
+**Weird Data** This is where I don't average over the Sao Paulo stations and I get a strange behavior....
+--------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+SaoPaulo <- read.csv('Daily_Weather_SaoPaulo.csv')
+SaoPaulo <- SaoPaulo %>% mutate(date = as.Date(SaoPaulo$date)) %>%  select(date,rain_mm,temp_max,temp_min,station)
+#SaoPaulo<- SaoPaulo %>% group_by(date) %>% summarize(mean(rain_mm, na.rm = TRUE), max(temp_max, na.rm = TRUE), min(temp_min, na.rm = TRUE))
+#head(SaoPaulo %>% arrange(date))
+colnames(SaoPaulo) <- c('date','rain_mm_sao_paulo','temp_max_sao_paulo','temp_min_sao_paulo','station')
+head(SaoPaulo %>% arrange(date))
+
+```
+
+```{r}
+
+df <- merge(weather,daily,by = c('date'))
+head(df)
+df <- merge(x = df, y = SaoPaulo, by = c('date'), all.x =TRUE, all.y = TRUE)
+head(df)
+```
+
+
+I am seeing something pretty interesting in the model below. As I add in more rain lags, the regression favors bigger lags. This is very different than what I observed with ibitinga and barra bonita, where more lag lead to a smaller coefficient. Am I supposed to interpret this as saying that history at sao paulo is actually predictive?
+
+
+```{r}
+model_8 <- lm(influent_flow ~ lag(rain_mm_sao_paulo, 0) + lag(rain_mm_sao_paulo, 1)+lag(rain_mm_sao_paulo, 2)+lag(rain_mm_sao_paulo, 3)+lag(rain_mm_sao_paulo, 4)+lag(rain_mm_sao_paulo, 5)+lag(rain_mm_sao_paulo, 6)+lag(rain_mm_sao_paulo, 7)+lag(rain_mm_sao_paulo, 8)+lag(rain_mm_sao_paulo, 9)+lag(rain_mm_sao_paulo, 10)+lag(rain_mm_sao_paulo,11)+lag(rain_mm_sao_paulo, 12) + lag(rain_mm_sao_paulo, 13) +lag(rain_mm_sao_paulo, 14) +lag(rain_mm_sao_paulo, 15) +lag(rain_mm_sao_paulo, 16) +lag(rain_mm_sao_paulo, 17) +lag(rain_mm_sao_paulo, 18) +lag(rain_mm_sao_paulo, 19) +lag(rain_mm_sao_paulo, 20) +lag(rain_mm_sao_paulo, 21)+lag(rain_mm_sao_paulo, 22)+lag(rain_mm_sao_paulo, 23)+lag(rain_mm_sao_paulo, 24)+lag(rain_mm_sao_paulo, 25)+lag(rain_mm_sao_paulo, 26)+lag(rain_mm_sao_paulo, 27)+lag(rain_mm_sao_paulo, 28)+lag(rain_mm_sao_paulo, 29)+lag(rain_mm_sao_paulo, 30)+lag(rain_mm_sao_paulo, 31)+lag(rain_mm_sao_paulo, 32)+lag(rain_mm_sao_paulo, 33)+lag(rain_mm_sao_paulo, 34)+lag(rain_mm_sao_paulo, 35)+lag(rain_mm_sao_paulo, 36)+lag(rain_mm_sao_paulo, 37)+lag(rain_mm_sao_paulo, 38)+lag(rain_mm_sao_paulo, 39)+lag(rain_mm_sao_paulo, 40)+lag(rain_mm_sao_paulo, 41)+lag(rain_mm_sao_paulo, 42)+lag(rain_mm_sao_paulo, 43)+lag(rain_mm_sao_paulo, 44)+lag(rain_mm_sao_paulo, 45)+lag(rain_mm_sao_paulo, 46)+lag(rain_mm_sao_paulo, 47)+lag(rain_mm_sao_paulo, 48)+lag(rain_mm_sao_paulo, 49)+lag(rain_mm_sao_paulo, 50)+lag(rain_mm_sao_paulo, 51)+lag(rain_mm_sao_paulo, 52)+lag(rain_mm_sao_paulo, 53)+lag(rain_mm_sao_paulo, 54)+lag(rain_mm_sao_paulo, 55)+lag(rain_mm_sao_paulo, 56)+lag(rain_mm_sao_paulo, 57)+lag(rain_mm_sao_paulo, 58)+lag(rain_mm_sao_paulo, 59)+lag(rain_mm_sao_paulo, 60)+lag(rain_mm_sao_paulo, 61)+lag(rain_mm_sao_paulo, 62)+lag(rain_mm_sao_paulo, 63)+lag(rain_mm_sao_paulo, 64)+lag(rain_mm_sao_paulo, 65)+lag(rain_mm_sao_paulo, 66)+lag(rain_mm_sao_paulo, 67)+lag(rain_mm_sao_paulo, 68)+lag(rain_mm_sao_paulo, 69)+lag(rain_mm_sao_paulo, 70)+lag(rain_mm_sao_paulo, 71)+lag(rain_mm_sao_paulo, 72)+lag(rain_mm_sao_paulo, 73)+lag(rain_mm_sao_paulo, 74)+lag(rain_mm_sao_paulo, 75)+lag(rain_mm_sao_paulo, 76)+lag(rain_mm_sao_paulo, 77)+lag(rain_mm_sao_paulo, 78)+lag(rain_mm_sao_paulo, 79)+lag(rain_mm_sao_paulo, 80)+lag(rain_mm_sao_paulo, 81)+lag(rain_mm_sao_paulo, 82)+lag(rain_mm_sao_paulo, 83)+lag(rain_mm_sao_paulo, 84)+lag(rain_mm_sao_paulo, 85)+lag(rain_mm_sao_paulo, 86)+lag(rain_mm_sao_paulo, 87)+lag(rain_mm_sao_paulo, 88)+lag(rain_mm_sao_paulo, 89)+lag(rain_mm_sao_paulo, 90)+lag(rain_mm_sao_paulo, 91)+lag(rain_mm_sao_paulo, 92)+lag(rain_mm_sao_paulo, 93)+lag(rain_mm_sao_paulo, 94)+lag(rain_mm_sao_paulo, 95)+lag(rain_mm_sao_paulo, 96)+lag(rain_mm_sao_paulo, 97)+lag(rain_mm_sao_paulo, 98)+lag(rain_mm_sao_paulo, 99)+lag(rain_mm_sao_paulo, 100)+lag(rain_mm_sao_paulo, 101)+lag(rain_mm_sao_paulo, 102)+lag(rain_mm_sao_paulo, 103)+lag(rain_mm_sao_paulo, 104)+lag(rain_mm_sao_paulo, 105)+lag(rain_mm_sao_paulo, 106)+lag(rain_mm_sao_paulo, 107)+lag(rain_mm_sao_paulo, 108)+lag(rain_mm_sao_paulo, 109)+lag(rain_mm_sao_paulo, 110)+lag(rain_mm_sao_paulo, 111)+lag(rain_mm_sao_paulo, 112)+lag(rain_mm_sao_paulo, 113)+lag(rain_mm_sao_paulo, 114)+lag(rain_mm_sao_paulo, 115)+lag(rain_mm_sao_paulo, 116)+lag(rain_mm_sao_paulo, 117)+lag(rain_mm_sao_paulo, 118)+lag(rain_mm_sao_paulo, 119)+lag(rain_mm_sao_paulo, 120)+lag(water_level,7), data = df)
+
+summary(model_8)
+
+```
+
+```{r}
+df <- df %>% mutate(prediction = predict(model_8,df))
+```
+
+```{r}
+plot_ly(x=df$prediction, y=df$influent_flow, type="scatter", mode="markers",color =(df$influent_flow - df$prediction))
+plot_ly(x=df$prediction, y=df$influent_flow, type="scatter", mode="markers",color =df$month)
+plot_ly(x=df$prediction, y=df$influent_flow, type="scatter", mode="markers",color =df$station)
+
+#(df$influent_flow - df$prediction)
+```
