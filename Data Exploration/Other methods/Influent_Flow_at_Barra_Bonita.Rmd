@@ -1,0 +1,217 @@
+---
+title: "Poured and Influent Flow at Barra Bonita"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+#here are the packages I am going to use use
+library(ggplot2)    
+library(tidyverse)  
+library(gridExtra)
+library(caret)
+library(party)
+library(plotly)
+knitr::opts_chunk$set(warning=FALSE,message=FALSE)
+library(dplyr)
+library(lubridate)
+```
+
+**Data from Barra Bonita**
+
+```{r}
+#small_daily will contain Barra Bonita dam data for a 5 year time window, including turbine flow
+small_daily <- read.csv('aggragate_daily_data.csv')
+small_daily <- small_daily %>% mutate(date = as.Date(small_daily$date)) %>% select(-'X')
+small_daily <- small_daily %>%  mutate(year =  year(ymd(small_daily$date)), month = month(ymd(small_daily$date)), day =day(ymd(small_daily$date)))
+
+#daily will contain Barra Bonita dam data for nearly twenty years. 
+#Turbine flow is not included as a variable because there are large periods of time where it is unavailable.
+daily <- read.csv('aggragate_daily_data_2000to2020.csv')
+daily <- daily %>% mutate(date = as.Date(daily$date)) %>% select(-'X')
+daily <- daily %>%  mutate(year =  year(ymd(daily$date)), month = month(ymd(daily$date)), day =day(ymd(daily$date)))
+
+```
+
+
+**Poured Flow**
+
+Intuitively, there are a few factors at play while managing how much water to let through a dam: 
+
+  1) down stream river flow must be maintained (we don't want to let the river below the dam run dry)
+
+  2) there is a maximum turbine capacity for water
+
+  3) the reservoir levels need to be maintained to allow for additional water capture and dam safety 
+
+This suggests that more energy could be produced any time turbine flow is not at capacity and poured flow is positive. Essentially, the dam is going to pour water for some reason ( to preserve the water level or the downstream flow). If the turbine is not at capacity, then any poured water could be diverted into the turbine "for free". 
+
+
+```{r}
+# this plot shows the turbine capacity and the poured flow across time. 
+small_daily %>% ggplot(aes(x = date)) + geom_line(aes(y = max(turbine_flow)-turbine_flow, color = 'turbine capacity')) +  geom_line(aes(y = poured_flow, color = "poured flow"))
+```
+
+The plot above shows that poured flow is a fraction of the excess turbine capacity most of the time. There are some spikes of poured flow that shoot way over the turbine capacity. Since most instances of poured flow are well under the capacity of the turbines, we will focus on predicting poured flow. 
+
+**Isolating Factors for Poured Flow**
+
+Since maintaining a low enough water level is important to preserving the dams integrity, it is reasonable that water level and influent flow influence the decision about whether to pour water or not. The next plot has water level on the x axis, poured flow on the y axis, and uses influent flow to color the scatter plot. 
+
+```{r}
+# this is a plot that has water level on the x axis and poured flow on the y axis. The color of the points corresponds to the influent flow.
+daily %>%  ggplot(aes(x = water_level, y = poured_flow, color = influent_flow)) + geom_point()
+```
+
+The most obvious take away from the scatter plot above is that water is not poured across the dam if the water level in the reservoir is below 447 meters. This suggests that the dam can safely handle water levels in that range. Searching for the specifications of the dam shows that the maximum reservoir level is supposed to be 451 meters. 
+
+The impact of influent flow on poured flow is not very clear from the scatter plot. However, this scatter plot suggests that a tree might be a good model for influent flow. The thinking is that there are decision threshold for the dam managers: for example, if the water level is below 447 meters, do not pouring water over the dam. 
+
+**Applying a Decision Tree to Poured Flow**
+
+The motivation for using a decision tree to analyze poured flow is that the previous scatter plot shows the effectiveness of using half-space cuts on the data space. That is, splitting the data into high water level and low water level points is a good way of categorizing if poured flow is likely or not. The decision tree used influent flow, water level, and month as a factor. The month variable is included for good measure in case seasonality  can be detected by the decision tree. The tree is truncated to 3 levels to avoid over-fitting. 
+
+
+```{r}
+png(file = "decision_tree2.png", res=300, height=8, width=14, units="in")
+tree1 <- ctree(poured_flow ~ water_level + influent_flow + as.factor(month),daily, controls = ctree_control(maxdepth = 3))
+plot(tree1)
+```
+
+![](decision_tree2.png)
+
+The main take-away from the decision tree is that influent flow does a pretty good job at splitting the data into groups where poured flow is likely or unlikely. To verify this visually, consider the next graph.
+
+```{r}
+daily %>%  ggplot(aes(x = water_level, y = poured_flow, color = influent_flow < 930.88)) + geom_point()
+```
+
+Even though there are still some days with no poured flow despite having a high influent flow, many of the high poured flow days are characterized by influent flow. The implications of this finding is that understanding influent flow is important for understanding poured flow. Therefore, understanding influent flow will be the next task in this rmarkdown.
+
+**Influent flow conditioned on percipitation**
+
+
+```{r}
+SaoPaulo <- read.csv('Daily_Weather_SaoPaulo.csv')
+SaoPaulo <- SaoPaulo %>% mutate(date = as.Date(SaoPaulo$date)) %>%  select(date,rain_mm,temp_max,temp_min)
+SaoPaulo<- SaoPaulo %>% group_by(date) %>% summarize(mean(rain_mm, na.rm = TRUE), max(temp_max, na.rm = TRUE), min(temp_min, na.rm = TRUE))
+#head(SaoPaulo %>% arrange(date))
+colnames(SaoPaulo) <- c('date','rain_mm_sao_paulo','temp_max_sao_paulo','temp_min_sao_paulo')
+#head(SaoPaulo %>% arrange(date))
+df <- merge(x = daily, y = SaoPaulo, by = c('date'), all.x =TRUE, all.y = TRUE)
+#head(df)
+```
+
+**Linear model**
+
+```{r}
+df1 <- df %>% select(date,influent_flow,rain_mm_sao_paulo,water_level,month) %>% mutate(lag_1 = lag(rain_mm_sao_paulo, 1), lag_2 = lag(rain_mm_sao_paulo, 2), lag_3 = lag(rain_mm_sao_paulo, 3), lag_4 = lag(rain_mm_sao_paulo, 4), lag_5 = lag(rain_mm_sao_paulo, 5), lag_6 = lag(rain_mm_sao_paulo, 6), lag_7 = lag(rain_mm_sao_paulo, 7), lag_8 = lag(rain_mm_sao_paulo, 8), lag_9 = lag(rain_mm_sao_paulo, 9), lag_10 = lag(rain_mm_sao_paulo, 10), lag_11 = lag(rain_mm_sao_paulo,11), lag_12 = lag(rain_mm_sao_paulo, 12), lag_13 = lag(rain_mm_sao_paulo, 13), lag_14 = lag(rain_mm_sao_paulo, 14), lag_water = lag(water_level,7)) %>% drop_na()
+df3 <- df1 %>% filter(date <= "2019-01-01")
+#head(df3)
+```
+
+ The next chunk will do a linear regression for influent flow, given 15 days of historic  rainfall (current day and past 2 weeks), water level from one week ago, and month as a factor. This model will be trained with 10 fold cross validation. The resulting model will be tested on a test year (2019-01-01 to 2020-01-01) for comparison to other models.
+ 
+```{r}
+#train the model 
+    model_cv_0 <- train(
+    (influent_flow) ~ rain_mm_sao_paulo + lag_1+lag_2+lag_3+lag_4+lag_5+lag_6+lag_7+lag_8+lag_9+lag_10+lag_11+lag_12+ lag_13 +lag_14 +lag_water+ factor(month),
+    data = df3,
+    method = "lm",
+    trControl = trainControl(method = "cv", number = 10 ),
+    na.action = na.omit,
+    mteric = "MAE"
+    )
+
+#summary of the model to read coefficents
+summary(model_cv_0)
+
+#make predictions 
+df1 <- df1 %>% mutate(prediction = predict(model_cv_0,df1))
+df2 <- df1 %>% filter(date >= "2019-01-01")
+```
+
+The coefficients suggest that the rainfall 2 or 3 days ago is the most important variable in predicting influent flow today. This lag is to be expected because it take time for the rain to flow into the river. All variables have small p-values (beating the .01 threshold). 
+
+```{r}
+plot_ly(x=(df2$prediction), y=(df2$influent_flow), type="scatter", mode="markers",color =((df2$influent_flow) - (df2$prediction)))
+```
+
+
+This plot has the predicted influent flow on the x axis, and the actual influent flow on the y axis. The color encodes the error in the prediction. If the model perfectly predicted the influent flow then we would see a perfect line at 45 degrees form the x axis. Unfortunately, this is not what the plot shows. In fact, the data looks slightly bowed or concave up, suggesting that the relationship is better modeled by an exponential or quadratic function
+
+```{r}
+df2 %>% ggplot(aes(x=date, y=influent_flow-prediction,color =(influent_flow - prediction))) + geom_point()
+```
+
+The residual plot above does not have normally distributed residuals. It appears that the model overestimates the influent flow more frequently. 
+
+
+```{r}
+df2 %>%  ggplot(aes(x=date)) + geom_line(aes(y = influent_flow, color = 'actual')) + geom_line(aes(y = (prediction), color = 'predicted'))
+```
+
+The line graph above compares the predicted influent flow to the actual influent flow across time. The model does a decent job of recognizing the spikes in in fluent flow. However, the predicted influent flow has mmore extreme peaks and vallies than the actual influent flow around October.
+
+For comparisons to other models, we calculate the mean absolute error of the model on the test year, and the mean absolute error as a percent of the mean influent flow. 
+
+```{r}
+mean(abs((df2$influent_flow)-(df2$prediction)),na.rm = TRUE)
+mean(abs((df2$influent_flow)-(df2$prediction)),na.rm = TRUE)/mean(df2$influent_flow,na.rm = TRUE)
+
+```
+**Logarithmic Model**
+
+
+One of the scatter plots for the linear model suggested that an concave up function might be a better way to model influent flow given the precipitation data. The next model will try to predict the log(influent_flow) rather than the influent flow. Other than this change, the model parameters are identical to the linear model.  
+
+
+```{r}
+    model_cv_1 <- train(
+    log(influent_flow) ~ rain_mm_sao_paulo + lag_1+lag_2+lag_3+lag_4+lag_5+lag_6+lag_7+lag_8+lag_9+lag_10+lag_11+lag_12+ lag_13 +lag_14 +lag_water+ factor(month),
+    data = df3,
+    method = "lm",
+    trControl = trainControl(method = "cv", number = 10 ),
+    na.action = na.omit,
+    metric = "MAE"
+    )
+summary(model_cv_1)
+df1 <- df1 %>% mutate(prediction = predict(model_cv_1,df1))
+df2 <- df1 %>% filter(date >= "2019-01-01")  
+```
+
+As in the linear model, the rainfall from 2 and 3 days ago have the largest coefficients. All coefficients other than the binary factor variables for a few months have low p values (meeting a .01 threshold)/
+
+```{r}
+plot_ly(x=(df2$prediction), y=log(df2$influent_flow), type="scatter", mode="markers",color =(log(df2$influent_flow) - (df2$prediction)))
+```
+
+
+THe plot above has predicted log(infuent_flow) on the x axis, and actual log(influent_flow) on the y axis. The color encodes the error in the prediction. There is a fairly clear diagonal trend in this prediction, which is what we would hope to see. 
+
+
+```{r}
+plot_ly(x=exp(df2$prediction), y=(df2$influent_flow), type="scatter", mode="markers",color =((df2$influent_flow) - exp(df2$prediction)))
+```
+
+For the sake of comparison to actual units, the plot above has the predicted influent flow on the x axis, and actual influent flow on the y axis. This plot suggests that low values of influent flow are predicted fairly accurately, while high values of influent flow are much more scattered. This makes sense given the model since, a small error in log(influent_flow) is magnified by the exponential function if log(influent_flow) is larger.
+
+```{r}
+df2 %>% ggplot(aes(x=date, y=influent_flow-prediction,color =(influent_flow - prediction))) + geom_point()
+```
+
+The plot of residual errors above is not as nicely distributed as in the linear model. One thing to note is that temporal ordering is not a important to the model. In fact, two days that are close together are likely the have similar historic rainfall patterns, which could explain some of the clustering in the residuals. 
+
+
+```{r}
+df2 %>%  ggplot(aes(x=date)) + geom_line(aes(y = influent_flow, color = 'actual')) + geom_line(aes(y = exp(prediction), color = 'predicted'))
+```
+
+Plotting the logarithmic prediction vs the actual prediction shows smoother behavior around October than the linear model. However, it seems like the qualitative prediction of spikes in influent flow is essentially the same between both models. In combination with the plot of residuals, we see that the logarithmic model overestimated the influent flow for many of the days around October. 
+
+```{r}
+mean(abs((df2$influent_flow)-exp(df2$prediction)),na.rm = TRUE)
+mean(abs((df2$influent_flow)-exp(df2$prediction)),na.rm = TRUE)/mean(df2$influent_flow,na.rm = TRUE)
+
+```
+
+The mean absolute error for the logarithmic model is better than for the linear model. This improvement in the error may have come at the cost of some concentration in residuals. 

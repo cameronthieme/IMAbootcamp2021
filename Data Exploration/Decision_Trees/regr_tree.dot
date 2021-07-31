@@ -1,16 +1,16 @@
 digraph Tree {
 node [shape=box] ;
-0 [label="turbine_flow <= 360.83\nmse = 0.426\nsamples = 6818\nvalue = 1.499"] ;
-1 [label="turbine_flow <= 236.945\nmse = 0.11\nsamples = 4224\nvalue = 1.084"] ;
+0 [label="effluent_flow <= 387.5\nmse = 0.422\nsamples = 7183\nvalue = 1.494"] ;
+1 [label="effluent_flow <= 258.96\nmse = 0.13\nsamples = 4773\nvalue = 1.125"] ;
 0 -> 1 [labeldistance=2.5, labelangle=45, headlabel="True"] ;
-2 [label="mse = 0.049\nsamples = 1730\nvalue = 0.776"] ;
+2 [label="mse = 0.059\nsamples = 2219\nvalue = 0.829"] ;
 1 -> 2 ;
-3 [label="mse = 0.04\nsamples = 2494\nvalue = 1.298"] ;
+3 [label="mse = 0.05\nsamples = 2554\nvalue = 1.381"] ;
 1 -> 3 ;
-4 [label="turbine_flow <= 513.945\nmse = 0.206\nsamples = 2594\nvalue = 2.174"] ;
+4 [label="effluent_flow <= 542.5\nmse = 0.198\nsamples = 2410\nvalue = 2.224"] ;
 0 -> 4 [labeldistance=2.5, labelangle=-45, headlabel="False"] ;
-5 [label="mse = 0.054\nsamples = 1620\nvalue = 1.884"] ;
+5 [label="mse = 0.063\nsamples = 1390\nvalue = 1.934"] ;
 4 -> 5 ;
-6 [label="mse = 0.084\nsamples = 974\nvalue = 2.657"] ;
+6 [label="mse = 0.11\nsamples = 1020\nvalue = 2.62"] ;
 4 -> 6 ;
 }
