@@ -29,3 +29,4 @@ We use publicly available data from many Brazilian entities:
 
 ## Our Results
 The following Google Slide contains our results. 
+[Slides PDF](https://github.com/francis2martinez/ima2021_project/blob/main/Cargill%20Results.pdf)
